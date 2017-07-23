@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2017    Ke Wang     Xiaomi
+# Copyright 2017    Sining Sun (NPU)
 
 
 """Utility functions for working with tf.train.SequenceExamples."""

@@ -44,7 +44,7 @@ fi
 lists_dir=./lists/ #lists_dir is used to store some necessary files lists
 apply_cmvn=1
 num_threads=12
-output_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/tfrecords/8k_czt/
+tfrecords_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/tfrecords/8k_czt/
 inputs_cmvn=$feats_dir/tr_inputs/cmvn.ark
 
 if [ $step -le 2 ] ; then
@@ -52,14 +52,16 @@ if [ $step -le 2 ] ; then
     for mode in tt tr cv; do # generated list name is $lists_dir/$mode_feats_mapping.lst
         python utils/makelists.py $feats_dir  $mode $lists_dir
         python utils/convert_to_records.py --mapping_list=$lists_dir/${mode}_feats_mapping.lst \
-        --inputs_cmvn=$inputs_cmvn --labels_cmvn='' --output_dir=$output_dir/$mode/ --num_threads=$num_threads\
+        --inputs_cmvn=$inputs_cmvn --labels_cmvn='' --output_dir=$tfrecords_dir/$mode/ --num_threads=$num_threads\
         --apply_cmvn=$apply_cmvn & 
 
     done
     wait
 fi
 
-    
+## For the training, we need proper tfrecords_dir to find the tfrecords features and labels
+## For the test, we  also need the 'tt' mixed speech wav dir because we need to extract phase info when we reconstruct wav
+
 
 
 
