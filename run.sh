@@ -7,7 +7,7 @@
 #      We define the tf records format for our task, please see the codes for the details
 #   3. Traing & Test model: Tensorflow
 
-step=1
+step=2
 #Step 0: extract features using matlab program. 
 #    Note: You need to change the data_dir path and feats_dir path in 
 #          matlab_feats_extraction/extract_czt_fft_feats.m  accordng to your config;
@@ -41,8 +41,23 @@ if [ $step -le 1 ] ; then
     wait 
 fi
 
+lists_dir=./lists/ #lists_dir is used to store some necessary files lists
+apply_cmvn=1
+num_threads=12
+output_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/tfrecords/8k_czt/
+inputs_cmvn=$feats_dir/tr_inputs/cmvn.ark
+
 if [ $step -le 2 ] ; then
-  echo "Transform the kaldi features to tf records"
+    echo "Transform the kaldi features to tf records"
+    for mode in tt tr cv; do # generated list name is $lists_dir/$mode_feats_mapping.lst
+        python utils/makelists.py $feats_dir  $mode $lists_dir
+        python utils/convert_to_records.py --mapping_list=$lists_dir/${mode}_feats_mapping.lst \
+        --inputs_cmvn=$inputs_cmvn --labels_cmvn='' --output_dir=$output_dir/$mode/ --num_threads=$num_threads\
+        --apply_cmvn=$apply_cmvn & 
+
+    done
+    wait
+fi
 
     
 
