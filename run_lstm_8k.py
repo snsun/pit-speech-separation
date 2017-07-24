@@ -17,13 +17,13 @@ import tensorflow as tf
 
 import io_funcs.kaldi_io as kio
 from model.blstm import LSTM
-from io_funcs.tfrecords_io import get_padded_batch
+from io_funcs.tfrecords_io import get_padded_batch_v2
 from utils.utils import pp, show_all_variables
 
 FLAGS = None
 
-def read_config_file(name, batch_size):
-    file_name = os.path.join(FLAGS.config_dir, name + ".lst")
+def read_list_file(name, batch_size):
+    file_name = os.path.join(FLAGS.lists_dir, name + ".lst")
     if not os.path.exists(file_name):
         tf.logging.fatal("File doesn't exist %s", file_name)
         sys.exit(-1)
@@ -40,19 +40,18 @@ def read_config_file(name, batch_size):
     return tfrecords_lst, num_batches
 def decode():
     """Decoding the inputs using current model."""
-    tfrecords_lst, num_batches = read_config_file('tt', FLAGS.batch_size)
+    tfrecords_lst, num_batches = read_list_file('tt', FLAGS.batch_size)
 
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
             with tf.name_scope('input'):
-                tt_mixed,tt_inputs,tt_labels1, tt_labels2,tt_lengths = get_padded_batch(
-                    tfrecords_lst, 1, FLAGS.input_dim,
-                    FLAGS.output_dim, num_enqueuing_threads=1,
+                tt_mixed,tt_inputs,tt_labels1, tt_labels2,tt_lengths = get_padded_batch_v2(
+                    tfrecords_lst, 1, FLAGS.input_size,
+                    FLAGS.output_size, num_enqueuing_threads=1,
                     num_epochs=1,shuffle=False)
 
                
         # Create two models with train_input and val_input individually.
-	
         with tf.name_scope('model'):
             model = LSTM(FLAGS, tt_inputs,tt_mixed, tt_labels1,tt_labels2,tt_lengths,infer=True)
 
@@ -81,19 +80,19 @@ def decode():
         #    tf.logging.fatal("%s not exist, exit now." % cmvn_filename)
         #    sys.exit(-1)
 
-	data_dir=FLAGS.data_dir
-	if not os.path.exists(data_dir):
-        	os.makedirs(data_dir)
+    data_dir=FLAGS.data_dir
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
 
         try:
             for batch in xrange(num_batches):
                 if coord.should_stop():
                     break
-		if FLAGS.assign == 'def':
+                if FLAGS.assign == 'def':
                     cleaned1, cleaned2 = sess.run([model._cleaned1, model._cleaned2])
-		else:
-		    x1, x2  = model.get_opt_output()
-	            cleaned1, cleaned2 = sess.run([x1, x2])
+                else:
+                    x1, x2  = model.get_opt_output()
+                    cleaned1, cleaned2 = sess.run([x1, x2])
 
                 #sequence = activations * cmvn['stddev_labels'] + \
                 #    cmvn['mean_labels']
@@ -110,8 +109,8 @@ def decode():
                 kaldi_writer2.write_next_utt(data_dir +'/' + partname + '_2.wav.ark', uttid, cleaned2[0,:, :])
                 kaldi_writer1.close()
                 kaldi_writer2.close()
-		if batch % 500 == 0:
-			print(batch )
+                if batch % 500 == 0:
+                    print(batch )
 
         except Exception, e:
             # Report exceptions to the coordinator.
@@ -156,20 +155,20 @@ def eval_one_epoch(sess, coord, val_model, val_num_batches):
     
     return val_loss
 def train():
-    tr_tfrecords_lst, tr_num_batches = read_config_file("tr", FLAGS.batch_size)
-    val_tfrecords_lst, val_num_batches = read_config_file("cv", FLAGS.batch_size)
+    tr_tfrecords_lst, tr_num_batches = read_list_file("tr", FLAGS.batch_size)
+    val_tfrecords_lst, val_num_batches = read_list_file("cv", FLAGS.batch_size)
   
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
             with tf.name_scope('input'):
                 tr_inputs,tr_inputs_cmvn, tr_labels1,tr_labels2,tr_lengths = get_padded_batch(
-                    tr_tfrecords_lst, FLAGS.batch_size, FLAGS.input_dim,
-                    FLAGS.output_dim, num_enqueuing_threads=FLAGS.num_threads,
+                    tr_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size,
+                    FLAGS.output_size, num_enqueuing_threads=FLAGS.num_threads,
                     num_epochs=FLAGS.max_epochs)
 
                 val_inputs,val_inputs_cmvn, val_labels1,val_labels2,val_lengths = get_padded_batch(
-                    val_tfrecords_lst, FLAGS.batch_size, FLAGS.input_dim,
-                    FLAGS.output_dim, num_enqueuing_threads=FLAGS.num_threads,
+                    val_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size,
+                    FLAGS.output_size, num_enqueuing_threads=FLAGS.num_threads,
                     num_epochs=FLAGS.max_epochs + 1)
 
      
@@ -182,15 +181,15 @@ def train():
 
         show_all_variables()
         init = tf.group(tf.global_variables_initializer(),
-			tf.local_variables_initializer())
+                        tf.local_variables_initializer())
             # Prevent exhausting all the gpu memories.
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         # config.gpu_options.per_process_gpu_memory_fraction = 0.5
         config.allow_soft_placement = True
         #sess = tf.InteractiveSession(config=config)
-	sess = tf.Session(config=config)
-	sess.run(init)
+        sess = tf.Session(config=config)
+        sess.run(init)
         if FLAGS.resume_training:
             ckpt = tf.train.get_checkpoint_state(FLAGS.save_dir + '/nnet')
             if ckpt and ckpt.model_checkpoint_path:
@@ -198,8 +197,8 @@ def train():
                 tr_model.saver.restore(sess, ckpt.model_checkpoint_path)
             else:
                 tf.logging.fatal("checkpoint not fo2und")
-	coord = tf.train.Coordinator()
-	threads = tf.train.start_queue_runners(sess=sess,coord=coord)	
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=sess,coord=coord)	
         try:
             # Cross validation before training.
             loss_prev = eval_one_epoch(sess, coord, val_model, val_num_batches)
@@ -227,7 +226,7 @@ def train():
                 # Accept or reject new parameters
                 if val_loss < loss_prev :
                     tr_model.saver.save(sess, ckpt_path)
-	            best_path = ckpt_path
+                    best_path = ckpt_path
                     # Logging train loss along with validation loss
                     tf.logging.info(
                         "ITERATION %d: TRAIN AVG.LOSS %.4f, (lrate%e) CROSSVAL"
@@ -236,7 +235,7 @@ def train():
                             "nnet accepted", ckpt_name,
                             (end_time - start_time) / 1))
                 else:
-		    tr_model.saver.restore(sess, best_path)
+                    tr_model.saver.restore(sess, best_path)
                     tf.logging.info(
                         "ITERATION %d: TRAIN AVG.LOSS %.4f, (lrate%e) CROSSVAL"
                         " AVG.LOSS %.4f, %s, (%s), TIME USED: %.2fs" % (
@@ -289,7 +288,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--decode',
-	type=int,
+        type=int,
         default=0,
         #action='store_true',
         help="Flag indicating decoding or training."
@@ -307,28 +306,22 @@ if __name__ == "__main__":
         help="Directory of train, val and test data."
     )
     parser.add_argument(
-        '--config_dir',
+        '--lists_dir',
         type=str,
         default='list',
         help="Directory to load train, val and test data."
     )
     parser.add_argument(
-        '--input_dim',
+        '--input_size',
         type=int,
         default=257,
         help="The dimension of input."
     )
     parser.add_argument(
-        '--output_dim',
+        '--output_size',
         type=int,
         default=129,
         help="The dimension of output."
-    )
-    parser.add_argument(
-        '--embedding_size',
-        type=int,
-        default=40,
-        help="The dimension of embedding."
     )
     
     parser.add_argument(
@@ -414,6 +407,11 @@ if __name__ == "__main__":
         type=str,
         default='def',
         help="Assignment method, def or opt"
+    )
+    parser.add_argument(
+        '--model_type',
+        type=str, default='LSTM',
+        help="BLSTM or LSTM"
     )
     FLAGS, unparsed = parser.parse_known_args()
     pp.pprint(FLAGS.__dict__)

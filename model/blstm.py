@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2017  Xiaomi Corporation (author: Ke Wang)
+# Copyright 2017  Sining Sun (NPU)
+#                 Jiaqiang Liu (NPU)
 
-"""Build the LSTM neural networks.
+"""
+    Build the LSTM(BLSTM)  neural networks for PIT speech separation.
 
-This module provides an example of definiting compute graph with tensorflow.
-In order to make the code concise, we split different parts of graph
-definition into functions. However, just doing so doesn't work, since every
-time the functions are called, the graph would be extended by new code.
-So we use properties to ensure the compute graph will be constructed only if the
-function is called at first time, and then be stored for subsequent use.
 """
 
 from __future__ import absolute_import
@@ -25,65 +21,96 @@ from tensorflow.contrib.rnn.python.ops import rnn
 import numpy as np
 
 class LSTM(object):
-    """Build the feed forward fully connected neural networks.
-
-    This class is a feed forward fully connected neural networks model. We
-    split different definition into different functions for simplicity.
-
+    """Build BLSTM or LSTM model with PIT loss functions.
+       If you use this module to train your module, make sure that 
+       your prepare the right format data! 
+ 
     Attributes:
-        config: A tensorflow placeholder indicating the input of the model.
-        inputs: A tensorflow placeholder indicating the output of the model.
-        labels: The model's prediction result after feeding forward.
-        lengths: The training step used to optimize the model.
+        config: Used to config our model
+                config.input_size: feature (input) size;
+                config.output_size: the final layer(output layer) size;
+                config.rnn_size: the rnn cells' number
+                config.batch_size: the batch_size for training
+                config.rnn_num_layers: the rnn layers numbers
+                config.keep_prob: the dropout rate
+        inputs: the mixed speech feature without cmvn
+        inputs_cmvn: the mixed speech feature with cmvn as the inputs of model(LSTM or BLSTM)
+        labels1: the spk1's feature, as targets to train the model
+        labels2: the spk2's feature, as targets to train the model
+        infer: bool, if training(false) or test (true)
     """
 
-    def __init__(self, config, inputs_cmvn,inputs, labels1,labels2, lengths, infer=False):
+    def __init__(self, config, inputs_cmvn, inputs, labels1, labels2, infer=False):
         self._inputs = inputs_cmvn
         self._mixed = inputs
         self._labels1 = labels1
         self._labels2 = labels2
-        self._lengths = lengths
-
-        if infer:
+        self._model_type = config.model_type
+        if infer: # if infer, we prefer to run one utterance one time. 
             config.batch_size = 1
 
         outputs = self._inputs
+        ## This first layer-- feed forward layer
+        ## Transform the input to the right size before feed into RNN
+
         with tf.variable_scope('forward1'):
-            outputs = tf.reshape(outputs, [-1, config.input_dim])
+            outputs = tf.reshape(outputs, [-1, config.input_size])
             outputs = tf.layers.dense(outputs, units=config.rnn_size,
                                       activation=tf.nn.tanh,
                                       reuse=tf.get_variable_scope().reuse)
             outputs = tf.reshape(
                 outputs, [config.batch_size,-1, config.rnn_size])
+        
+        ## Configure the LSTM or BLSTM model 
+        ## For BLSTM, we use the BasicLSTMCell.For LSTM, we use LSTMCell. 
+        ## You can change them and test the performance...
 
-        with tf.variable_scope('lstm'):
-   #$        def lstm_cell():
-    #           return tf.contrib.rnn.LSTMCell(
-     #               config.rnn_size, forget_bias=1.0, use_peepholes=True,
-      #              initializer=tf.contrib.layers.xavier_initializer(),
-       #             state_is_tuple=True, activation=tf.tanh)
-            cell = tf.contrib.rnn.BasicLSTMCell(config.rnn_size)
-            lstm_fw_cell = tf.contrib.rnn.MultiRNNCell([cell] * config.rnn_num_layers)
-            lstm_bw_cell = tf.contrib.rnn.MultiRNNCell([cell] * config.rnn_num_layers)
-	    lstm_fw_cell = _unpack_cell(lstm_fw_cell)
-            lstm_bw_cell = _unpack_cell(lstm_bw_cell)
-        #    if not infer and config.keep_prob < 1.0:
-         #           lstm_fw_cell=tf.contrib.rnn.DropoutWrapper(
-          #              lstm_fw_cell, output_keep_prob=config.keep_prob)
-           #         lstm_bw_cell=tf.contrib.rnn.DropoutWrapper(
-            #            lstm_bw_cell, output_keep_prob=config.keep_prob)
-            result = rnn.stack_bidirectional_dynamic_rnn(
-			cells_fw = lstm_fw_cell,
-			cells_bw = lstm_bw_cell,
-			inputs=outputs,
-			dtype=tf.float32,
-			sequence_length=self._lengths)
-	    outputs, fw_final_states, bw_final_states = result
+        if config.model_type.lower() == 'blstm': 
+            with tf.variable_scope('blstm'):
+                cell = tf.contrib.rnn.BasicLSTMCell(config.rnn_size)
+                if not infer and config.keep_prob < 1.0:
+                    cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=config.keep_prob)
+
+                lstm_fw_cell = tf.contrib.rnn.MultiRNNCell([cell] * config.rnn_num_layers)
+                lstm_bw_cell = tf.contrib.rnn.MultiRNNCell([cell] * config.rnn_num_layers)
+                lstm_fw_cell = _unpack_cell(lstm_fw_cell)
+                lstm_bw_cell = _unpack_cell(lstm_bw_cell)
+                result = rnn.stack_bidirectional_dynamic_rnn(
+                    cells_fw = lstm_fw_cell,
+                    cells_bw = lstm_bw_cell,
+                    inputs=outputs,
+                    dtype=tf.float32,
+                    sequence_length=self._lengths)
+                outputs, fw_final_states, bw_final_states = result
+        if config.model_type.lower() == 'lstm':
+            with tf.variable_scope('lstm'):
+                def lstm_cell():
+                    return tf.contrib.rnn.LSTMCell(
+                        config.rnn_size, forget_bias=1.0, use_peepholes=True,
+                        initializer=tf.contrib.layers.xavier_initializer(),
+                        state_is_tuple=True, activation=tf.tanh)
+                attn_cell = lstm_cell
+                if not infer and config.keep_prob < 1.0:
+                    def attn_cell():
+                        return tf.contrib.rnn.DropoutWrapper(lstm_cell(), output_keep_prob=config.keep_prob)
+                cell = tf.contrib.rnn.MultiRNNCell(
+                    [attn_cell() for _ in range(config.rnn_num_layers)],
+                    state_is_tuple=True)
+                self._initial_state = cell.zero_state(config.batch_size, tf.float32)
+                state = self.initial_state
+                outputs, state = tf.nn.dynamic_rnn(
+                    cell, outputs,
+                    dtype=tf.float32,
+                    sequence_length=self.lengths,
+                    initial_state=self.initial_state)
+                self._final_state = state
+        
+        ## Feed forward layer. Transform the RNN output to the right output size
 
         with tf.variable_scope('forward2'):
             outputs = tf.reshape(outputs, [-1, 2*config.rnn_size])
-	    in_size=2*config.rnn_size
-	    out_size = config.output_dim
+            in_size=2*config.rnn_size
+            out_size = config.output_size
             weights1 = tf.get_variable('weights1', [in_size, out_size],
             initializer=tf.random_normal_initializer(stddev=0.01))
             biases1 = tf.get_variable('biases1', [out_size],
@@ -95,9 +122,9 @@ class LSTM(object):
             mask1 = tf.nn.sigmoid(tf.matmul(outputs, weights1) + biases1)
             mask2 = tf.nn.sigmoid(tf.matmul(outputs, weights2) + biases2)
             self._activations1 = tf.reshape(
-                mask1, [config.batch_size, -1, config.output_dim])
+                mask1, [config.batch_size, -1, config.output_size])
             self._activations2 = tf.reshape(
-                mask2, [config.batch_size, -1, config.output_dim])
+                mask2, [config.batch_size, -1, config.output_size])
 
             self._cleaned1 = self._activations1*self._mixed[:,:,128:]
             self._cleaned2 = self._activations2*self._mixed[:,:,128:]
@@ -117,8 +144,6 @@ class LSTM(object):
 
         idx = tf.cast(cost1>cost2,tf.float32)
         self._loss = tf.reduce_sum(idx*cost2+(1-idx)*cost1)
-       # self._loss = loss * config.output_dim * 0.5
-       # self._loss =tf.reduce_sum(cost1)
         if tf.get_variable_scope().reuse: return
 
         self._lr = tf.Variable(0.0, trainable=False)
@@ -136,23 +161,24 @@ class LSTM(object):
     def assign_lr(self, session, lr_value):
         session.run(self._lr_update, feed_dict={self._new_lr: lr_value})
     def get_opt_output(self):
-	cost1 = tf.reduce_sum(tf.pow(self._cleaned1-self._labels1,2),2)+tf.reduce_sum(tf.pow(self._cleaned2-self._labels2,2),2)
-                           
-        cost2 = tf.reduce_sum(tf.pow(self._cleaned2-self._labels1,2),2)+tf.reduce_sum(tf.pow(self._cleaned1-self._labels2,2),2)    
+        '''
+            This function is just for the PIT testing with optimal assignment
+        '''
 
-	idx = tf.slice(cost1, [0, 0], [1, -1]) > tf.slice(cost2, [0, 0], [1, -1])
-	idx = tf.cast(idx, tf.float32)
-	idx = tf.reduce_mean(idx,reduction_indices=0)
+        cost1 = tf.reduce_sum(tf.pow(self._cleaned1-self._labels1,2),2)+tf.reduce_sum(tf.pow(self._cleaned2-self._labels2,2),2)
+        cost2 = tf.reduce_sum(tf.pow(self._cleaned2-self._labels1,2),2)+tf.reduce_sum(tf.pow(self._cleaned1-self._labels2,2),2)    
+        idx = tf.slice(cost1, [0, 0], [1, -1]) > tf.slice(cost2, [0, 0], [1, -1])
+        idx = tf.cast(idx, tf.float32)
+        idx = tf.reduce_mean(idx,reduction_indices=0)
         idx = tf.reshape(idx, [tf.shape(idx)[0], 1])	
-	x1 = self._cleaned1[0,:,:] * (1-idx) + self._cleaned2[0,:, :]*idx
-	
-	x2 = self._cleaned1[0,:,:]*idx + self._cleaned2[0,:,:]*(1-idx)
-	row = tf.shape(x1)[0]
-	col = tf.shape(x1)[1]
-	x1 = tf.reshape(x1, [1, row, col])
-	x2 = tf.reshape(x2, [1, row, col])
-	return x1, x2
-	 
+        x1 = self._cleaned1[0,:,:] * (1-idx) + self._cleaned2[0,:, :]*idx
+        x2 = self._cleaned1[0,:,:]*idx + self._cleaned2[0,:,:]*(1-idx)
+        row = tf.shape(x1)[0]
+        col = tf.shape(x1)[1]
+        x1 = tf.reshape(x1, [1, row, col])
+        x2 = tf.reshape(x2, [1, row, col])
+        return x1, x2
+       
     @property
     def inputs(self):
         return self._inputs
@@ -160,10 +186,6 @@ class LSTM(object):
     @property
     def labels(self):
         return self._labels1,self._labels2
-
-    @property
-    def lengths(self):
-        return self._lengths
 
     @property
     def initial_state(self):
@@ -200,6 +222,6 @@ class LSTM(object):
         return weights, biases
 def _unpack_cell(cell):
     if isinstance(cell,tf.contrib.rnn.MultiRNNCell):
-	return cell._cells
+        return cell._cells
     else:
-	return [cell]
+        return [cell]

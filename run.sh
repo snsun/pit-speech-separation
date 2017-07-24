@@ -8,6 +8,35 @@
 #   3. Traing & Test model: Tensorflow
 
 step=2
+feats_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/feats_8k_czt/
+          #give the feature dir where you store your feats, it must includes {tr, cv, tt}_{inputs, labels} dirctories
+copy_labels=false
+
+lists_dir=./lists/ #lists_dir is used to store some necessary files lists
+apply_cmvn=1
+num_threads=12
+tfrecords_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/tfrecords/8k_czt/
+inputs_cmvn=$feats_dir/tr_inputs/cmvn.ark
+labels_cmvn=''
+
+gpu_id=0
+TF_CPP_MIN_LOG_LEVEL=1
+rnn_num_layers=2
+tr_batch_size=32
+tt_batch_size=1
+input_size=257
+output_size=129
+rnn_size=128
+keep_prob=0.8
+learning_rate=0.0005
+decode=0
+model_type=BLSTM
+prefix=ZoomFFT
+assignment=def
+name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}
+save_dir=exp/$name/
+data_dir=data/separated/${name}_${assignment}/
+
 #Step 0: extract features using matlab program. 
 #    Note: You need to change the data_dir path and feats_dir path in 
 #          matlab_feats_extraction/extract_czt_fft_feats.m  accordng to your config;
@@ -18,10 +47,11 @@ if [ $step -le 0 ]; then
 
 fi
 
-feats_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/feats_8k_czt/
-          #give the feature dir where you store your feats, it must includes {tr, cv, tt}_{inputs, labels} dirctories
-copy_labels=false
-
+#####################################################################################################
+#   NOTE for STEP 1:                                                                              ###
+#       1.you need to check if you give the right 'feats_dir' and 'copy_labels' in config session ###
+#       2.make sure that your path.sh includes the right Kaldi path!!                             ###
+#####################################################################################################
 if [ $step -le 1 ] ; then
     echo " Feature format transformatio \n copy text ark to binary ark and scp and calculate the Mean and Variance for inputs." 
 
@@ -36,23 +66,29 @@ if [ $step -le 1 ] ; then
                 copy-feats ark:$feats_dir/${x}_${y}/feats.txt ark,scp:$feats_dir/${x}_${y}/feats.ark,$feats_dir/${x}_${y}/feats.scp &
             done
         fi
-#        compute-cmvn-stats ark:$feats_dir/${x}_inputs/feats.txt $feats_dir/${x}_${y}/cmvn.ark &
+        compute-cmvn-stats ark:$feats_dir/${x}_inputs/feats.txt $feats_dir/${x}_${y}/cmvn.ark &
     done
     wait 
 fi
 
-lists_dir=./lists/ #lists_dir is used to store some necessary files lists
-apply_cmvn=1
-num_threads=12
-tfrecords_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/tfrecords/8k_czt/
-inputs_cmvn=$feats_dir/tr_inputs/cmvn.ark
+#####################################################################################################
+#   NOTE for STEP 2:                                                                              ###
+#       1.you need to check the following config  in config session                               ###
+#           lists_dir: used to store tfrecords file lists;                                        ###
+#           apply_cmvn: 1 or 0, if you use cmvn when you transform the feature                    ###
+#           num_threads: convert the data parallelly                                              ###
+#           tfrecords_dir: where you want to store the tfrecords file                             ###
+#           inputs_cmvn: the cmvn file for inputs computed using Kaldi                            ###
+#           labels_cmvn: the cmvn file for outputs (just for regression task),                    ###        
+#                        if you don't use cmvn for labels, make sure labels_cmvn=''               ###
+#####################################################################################################
 
 if [ $step -le 2 ] ; then
     echo "Transform the kaldi features to tf records"
     for mode in tt tr cv; do # generated list name is $lists_dir/$mode_feats_mapping.lst
         python utils/makelists.py $feats_dir  $mode $lists_dir
         python utils/convert_to_records.py --mapping_list=$lists_dir/${mode}_feats_mapping.lst \
-        --inputs_cmvn=$inputs_cmvn --labels_cmvn='' --output_dir=$tfrecords_dir/$mode/ --num_threads=$num_threads\
+        --inputs_cmvn=$inputs_cmvn --labels_cmvn=$labels_cmvn --output_dir=$tfrecords_dir/$mode/ --num_threads=$num_threads\
         --apply_cmvn=$apply_cmvn & 
 
     done
@@ -62,6 +98,17 @@ fi
 ## For the training, we need proper tfrecords_dir to find the tfrecords features and labels
 ## For the test, we  also need the 'tt' mixed speech wav dir because we need to extract phase info when we reconstruct wav
 
+if [ $step -le 3 ]; then
+    
+    echo "Start Traing RNN(LSTM or BLSTM) model."
+    decode=0
+    tr_cmd=CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL python run_lstm_8k.py \
+    --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
+    --decode=$decode --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
+    --input_size=$input_size --output_size=$output_size  --assign=$assignment
+    echo $tr_cmd
+    $tr_cmd
+fi
 
 
 
