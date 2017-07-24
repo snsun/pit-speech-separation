@@ -7,15 +7,15 @@
 #      We define the tf records format for our task, please see the codes for the details
 #   3. Traing & Test model: Tensorflow
 
-step=3
-feats_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/feats_8k_czt/
+step=1
+feats_dir=`pwd`/50_500_64_zoomfft/feats_8k_czt/
           #give the feature dir where you store your feats, it must includes {tr, cv, tt}_{inputs, labels} dirctories
 copy_labels=false
 
 lists_dir=./tmp/lists/ #lists_dir is used to store some necessary files lists
 apply_cmvn=1
 num_threads=12
-tfrecords_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/tfrecords/8k_czt/
+tfrecords_dir=data/tfrecords/50_500_64_zoomfft/
 inputs_cmvn=$feats_dir/tr_inputs/cmvn.ark
 labels_cmvn=''
 
