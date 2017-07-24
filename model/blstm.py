@@ -40,11 +40,12 @@ class LSTM(object):
         infer: bool, if training(false) or test (true)
     """
 
-    def __init__(self, config, inputs_cmvn, inputs, labels1, labels2, infer=False):
+    def __init__(self, config, inputs_cmvn, inputs, labels1, labels2, lengths, infer=False):
         self._inputs = inputs_cmvn
         self._mixed = inputs
         self._labels1 = labels1
         self._labels2 = labels2
+        self._lengths = lengths
         self._model_type = config.model_type
         if infer: # if infer, we prefer to run one utterance one time. 
             config.batch_size = 1
@@ -101,15 +102,19 @@ class LSTM(object):
                 outputs, state = tf.nn.dynamic_rnn(
                     cell, outputs,
                     dtype=tf.float32,
-                    sequence_length=self.lengths,
+                    sequence_length=self._lengths,
                     initial_state=self.initial_state)
                 self._final_state = state
         
         ## Feed forward layer. Transform the RNN output to the right output size
 
         with tf.variable_scope('forward2'):
-            outputs = tf.reshape(outputs, [-1, 2*config.rnn_size])
-            in_size=2*config.rnn_size
+            if self._model_type.lower() == 'blstm':
+                outputs = tf.reshape(outputs, [-1, 2*config.rnn_size])
+                in_size=2*config.rnn_size
+            else:
+                outputs = tf.reshape(outputs, [-1, config.rnn_size])
+                in_size = config.rnn_size
             out_size = config.output_size
             weights1 = tf.get_variable('weights1', [in_size, out_size],
             initializer=tf.random_normal_initializer(stddev=0.01))

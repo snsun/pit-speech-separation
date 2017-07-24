@@ -6,7 +6,7 @@
 import sys
 import wave
 import numpy as np
-sys.path.append("/home/disk1/jqliu/LSTM_PIT")
+sys.path.append('./')
 from io_funcs.kaldi_io import ArkReader
 from io_funcs import wave_io
 

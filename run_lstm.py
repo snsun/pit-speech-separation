@@ -18,7 +18,7 @@ import tensorflow as tf
 import io_funcs.kaldi_io as kio
 from model.blstm import LSTM
 from io_funcs.tfrecords_io import get_padded_batch_v2
-from utils.utils import pp, show_all_variables
+from local.utils import pp, show_all_variables
 
 FLAGS = None
 
@@ -161,12 +161,12 @@ def train():
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
             with tf.name_scope('input'):
-                tr_inputs,tr_inputs_cmvn, tr_labels1,tr_labels2,tr_lengths = get_padded_batch(
+                tr_inputs,tr_inputs_cmvn, tr_labels1,tr_labels2,tr_lengths = get_padded_batch_v2(
                     tr_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size,
                     FLAGS.output_size, num_enqueuing_threads=FLAGS.num_threads,
                     num_epochs=FLAGS.max_epochs)
 
-                val_inputs,val_inputs_cmvn, val_labels1,val_labels2,val_lengths = get_padded_batch(
+                val_inputs,val_inputs_cmvn, val_labels1,val_labels2,val_lengths = get_padded_batch_v2(
                     val_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size,
                     FLAGS.output_size, num_enqueuing_threads=FLAGS.num_threads,
                     num_epochs=FLAGS.max_epochs + 1)
@@ -190,13 +190,13 @@ def train():
         #sess = tf.InteractiveSession(config=config)
         sess = tf.Session(config=config)
         sess.run(init)
-        if FLAGS.resume_training:
+        if FLAGS.resume_training.lower()=='true':
             ckpt = tf.train.get_checkpoint_state(FLAGS.save_dir + '/nnet')
             if ckpt and ckpt.model_checkpoint_path:
                 tf.logging.info("restore from" + ckpt.model_checkpoint_path)
                 tr_model.saver.restore(sess, ckpt.model_checkpoint_path)
             else:
-                tf.logging.fatal("checkpoint not fo2und")
+                tf.logging.fatal("checkpoint not found")
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess,coord=coord)	
         try:
@@ -295,8 +295,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         '--resume_training',
-        type=bool,
-        default=True,
+        type=str,
+        default='False',
         help="Flag indicating whether to resume training from cptk."
     )
     parser.add_argument(

@@ -7,12 +7,12 @@
 #      We define the tf records format for our task, please see the codes for the details
 #   3. Traing & Test model: Tensorflow
 
-step=2
+step=3
 feats_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/feats_8k_czt/
           #give the feature dir where you store your feats, it must includes {tr, cv, tt}_{inputs, labels} dirctories
 copy_labels=false
 
-lists_dir=./lists/ #lists_dir is used to store some necessary files lists
+lists_dir=./tmp/lists/ #lists_dir is used to store some necessary files lists
 apply_cmvn=1
 num_threads=12
 tfrecords_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/tfrecords/8k_czt/
@@ -36,6 +36,12 @@ assignment=def
 name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}
 save_dir=exp/$name/
 data_dir=data/separated/${name}_${assignment}/
+resume_training=false
+
+#for step 5
+ori_wav_path=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/data/2speakers/wav8k/min/tt/mix/
+  #rec_wav_path=data/wav/rec_deepcluster_${fs}_${assign}/
+rec_wav_path=data/wav/rec/${name}_${assignment}/
 
 #Step 0: extract features using matlab program. 
 #    Note: You need to change the data_dir path and feats_dir path in 
@@ -95,22 +101,69 @@ if [ $step -le 2 ] ; then
     wait
 fi
 
-## For the training, we need proper tfrecords_dir to find the tfrecords features and labels
-## For the test, we  also need the 'tt' mixed speech wav dir because we need to extract phase info when we reconstruct wav
+#####################################################################################################
+#   NOTE for STEP 3:                                                                              ###
+#       1. Make sure that you configure the RNN/data_dir/model_dir/ all rights                    ###
+#####################################################################################################
 
 if [ $step -le 3 ]; then
     
     echo "Start Traing RNN(LSTM or BLSTM) model."
     decode=0
-    tr_cmd=CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL python run_lstm_8k.py \
+    batch_size=32
+    tr_cmd=CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL python run_lstm.py \
     --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
     --decode=$decode --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
-    --input_size=$input_size --output_size=$output_size  --assign=$assignment
+    --input_size=$input_size --output_size=$output_size  --assign=$assignment --resume_training=$resume_training \
+    --model_type=$model_type 
     echo $tr_cmd
     $tr_cmd
 fi
 
+#####################################################################################################
+#   NOTE for STEP 4:                                                                              ###
+#       1. Make sure that you configure the RNN/data_dir/model_dir/ all rights                    ###
+#####################################################################################################
 
+if [ $step -le 4 ]; then
+    
+    echo "Start Traing RNN(LSTM or BLSTM) model."
+    decode=1
+    batch_size=1
+    tr_cmd=CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL python run_lstm.py \
+    --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
+    --decode=$decode --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
+    --input_size=$input_size --output_size=$output_size  --assign=$assignment --resume_training=$resume_training \
+    --model_type=$model_type 
+    echo "Step 4: Decoding and reconstructe wav \n"
+    echo $tr_cmd
+    $tr_cmd
+fi
+#####################################################################################################
+#   NOTE for STEP 5:                                                                              ###
+#       1. Make sure you give the right ori_wav_path                                              ###
+#       2. The reconstruted wav are stored in rec_wav_path                                        ###
+#####################################################################################################
+
+
+if [ $step -le 5 ]; then
+    echo "Reconstructe the separated wav"
+    mkdir -p $rec_wav_path
+    . ./path.sh
+    scp_list=$lists_dir/scp.lst
+    find $data_dir -iname "*.scp" > $scp_list
+    for line in `cat $scp_list`; do
+
+        wavname=`basename -s .scp $line`
+        w=`echo $wavname | awk -F '_' 'BEGIN{OFS="_"}{print $1,$2,$3,$4}'` 
+        w=${w}.wav
+        copy-feats scp:$line ark,scp:./tmp/tmp_enhan.ark,./tmp/tmp_enhan.scp || exit 1
+        python  ./local/reconstruct_spectrogram.py ./tmp/tmp_enhan.scp ${ori_wav_path}/$w ${rec_wav_path}/${wavname} || exit 1
+  done
+
+rm ./tmp/tmp_enhan.* $scp_list
+echo "Done OK!"
+fi
 
 
 
