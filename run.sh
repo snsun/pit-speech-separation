@@ -96,8 +96,8 @@ fi
 if [ $step -le 2 ] ; then
     echo "Transform the kaldi features to tf records"
     for mode in tt tr cv; do # generated list name is $lists_dir/$mode_feats_mapping.lst
-        python utils/makelists.py $kaldi_feats_dir  $mode $lists_dir
-        python utils/convert_to_records.py --mapping_list=$lists_dir/${mode}_feats_mapping.lst \
+        python local/makelists.py $kaldi_feats_dir  $mode $lists_dir
+        python local/convert_to_records.py --mapping_list=$lists_dir/${mode}_feats_mapping.lst \
         --inputs_cmvn=$inputs_cmvn --labels_cmvn=$labels_cmvn --output_dir=$tfrecords_dir/$mode/ --num_threads=$num_threads\
         --apply_cmvn=$apply_cmvn & 
 
