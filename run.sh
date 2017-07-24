@@ -13,9 +13,11 @@ kaldi_feats_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-sp
 copy_labels=false
 
 lists_dir=./tmp/lists/ #lists_dir is used to store some necessary files lists
+mkdir -p $lists_dir
 apply_cmvn=1
 num_threads=12
-tfrecords_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/tfrecords/8k_czt/
+#tfrecords_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/tfrecords/8k_czt/
+tfrecords_dir=/home/disk1/jqliu/LSTM_PIT/zoom_fft/8k_czt/
 inputs_cmvn=$kaldi_feats_dir/tr_inputs/cmvn.ark
 labels_cmvn=''
 
@@ -39,7 +41,8 @@ data_dir=data/separated/${name}_${assignment}/
 resume_training=false
 
 #for step 5
-ori_wav_path=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/data/2speakers/wav8k/min/tt/mix/
+#ori_wav_path=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/data/2speakers/wav8k/min/tt/mix/
+ori_wav_path=/home/disk1/jqliu/LSTM_PIT/data/wav/mix_8k_tt/
   #rec_wav_path=data/wav/rec_deepcluster_${fs}_${assign}/
 rec_wav_path=data/wav/rec/${name}_${assignment}/
 
@@ -111,6 +114,9 @@ if [ $step -le 3 ]; then
     echo "Start Traing RNN(LSTM or BLSTM) model."
     decode=0
     batch_size=32
+    for x in tr tt cv; do
+        find $tfrecords_dir/${x}/ -iname "*.tfrecords" > $lists_dir/${x}.lst
+    done
     tr_cmd=CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL python run_lstm.py \
     --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
     --decode=$decode --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
