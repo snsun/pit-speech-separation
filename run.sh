@@ -8,18 +8,19 @@
 #   3. Traing & Test model: Tensorflow
 
 step=1
-feats_dir=`pwd`/50_500_64_zoomfft/feats_8k_czt/
+kaldi_feats_dir=`pwd`/50_500_64_zoomfft/feats_8k_czt/
           #give the feature dir where you store your feats, it must includes {tr, cv, tt}_{inputs, labels} dirctories
 copy_labels=false
 
 lists_dir=./tmp/lists/ #lists_dir is used to store some necessary files lists
+mkdir -p $lists_dir
 apply_cmvn=1
 num_threads=12
 tfrecords_dir=data/tfrecords/50_500_64_zoomfft/
 inputs_cmvn=$feats_dir/tr_inputs/cmvn.ark
 labels_cmvn=''
 
-gpu_id=0
+gpu_id='0'
 TF_CPP_MIN_LOG_LEVEL=1
 rnn_num_layers=2
 tr_batch_size=32
@@ -29,6 +30,7 @@ output_size=129
 rnn_size=128
 keep_prob=0.8
 learning_rate=0.0005
+halving_factor=0.7
 decode=0
 model_type=BLSTM
 prefix=ZoomFFT
@@ -39,12 +41,13 @@ data_dir=data/separated/${name}_${assignment}/
 resume_training=false
 
 #for step 5
-ori_wav_path=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/data/2speakers/wav8k/min/tt/mix/
+#ori_wav_path=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/data/2speakers/wav8k/min/tt/mix/
+ori_wav_path=/home/disk1/jqliu/LSTM_PIT/data/wav/mix_8k_tt/
   #rec_wav_path=data/wav/rec_deepcluster_${fs}_${assign}/
 rec_wav_path=data/wav/rec/${name}_${assignment}/
 
 #Step 0: extract features using matlab program. 
-#    Note: You need to change the data_dir path and feats_dir path in 
+#    Note: You need to change the data_dir path and kaldi_feats_dir path in 
 #          matlab_feats_extraction/extract_czt_fft_feats.m  accordng to your config;
 
 if [ $step -le 0 ]; then
@@ -55,7 +58,7 @@ fi
 
 #####################################################################################################
 #   NOTE for STEP 1:                                                                              ###
-#       1.you need to check if you give the right 'feats_dir' and 'copy_labels' in config session ###
+#       1.you need to check if you give the right 'kaldi_feats_dir' and 'copy_labels' in config session ###
 #       2.make sure that your path.sh includes the right Kaldi path!!                             ###
 #####################################################################################################
 if [ $step -le 1 ] ; then
@@ -65,14 +68,14 @@ if [ $step -le 1 ] ; then
     for x in tr cv tt; do 
         if $copy_labels; then
             for y in inputs labels;do
-                copy-feats ark:$feats_dir/${x}_${y}/feats.txt ark,scp:$feats_dir/${x}_${y}/feats.ark,$feats_dir/${x}_${y}/feats.scp &
+                copy-feats ark:$kaldi_feats_dir/${x}_${y}/feats.txt ark,scp:$kaldi_feats_dir/${x}_${y}/feats.ark,$kaldi_feats_dir/${x}_${y}/feats.scp &
             done
         else
             for y in inputs; do
-                copy-feats ark:$feats_dir/${x}_${y}/feats.txt ark,scp:$feats_dir/${x}_${y}/feats.ark,$feats_dir/${x}_${y}/feats.scp &
+                copy-feats ark:$kaldi_feats_dir/${x}_${y}/feats.txt ark,scp:$kaldi_feats_dir/${x}_${y}/feats.ark,$kaldi_feats_dir/${x}_${y}/feats.scp &
             done
         fi
-        compute-cmvn-stats ark:$feats_dir/${x}_inputs/feats.txt $feats_dir/${x}_${y}/cmvn.ark &
+        compute-cmvn-stats ark:$kaldi_feats_dir/${x}_inputs/feats.txt $kaldi_feats_dir/${x}_${y}/cmvn.ark &
     done
     wait 
 fi
@@ -92,7 +95,7 @@ fi
 if [ $step -le 2 ] ; then
     echo "Transform the kaldi features to tf records"
     for mode in tt tr cv; do # generated list name is $lists_dir/$mode_feats_mapping.lst
-        python utils/makelists.py $feats_dir  $mode $lists_dir
+        python utils/makelists.py $kaldi_feats_dir  $mode $lists_dir
         python utils/convert_to_records.py --mapping_list=$lists_dir/${mode}_feats_mapping.lst \
         --inputs_cmvn=$inputs_cmvn --labels_cmvn=$labels_cmvn --output_dir=$tfrecords_dir/$mode/ --num_threads=$num_threads\
         --apply_cmvn=$apply_cmvn & 
@@ -111,13 +114,17 @@ if [ $step -le 3 ]; then
     echo "Start Traing RNN(LSTM or BLSTM) model."
     decode=0
     batch_size=32
-    tr_cmd=CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL python run_lstm.py \
+    for x in tr tt cv; do
+        find $tfrecords_dir/${x}/ -iname "*.tfrecords" > $lists_dir/${x}.lst
+    done
+    tr_cmd="python run_lstm.py \
     --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
     --decode=$decode --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
     --input_size=$input_size --output_size=$output_size  --assign=$assignment --resume_training=$resume_training \
-    --model_type=$model_type 
+    --model_type=$model_type --halving_factor=$halving_factor "
+
     echo $tr_cmd
-    $tr_cmd
+    CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL $tr_cmd
 fi
 
 #####################################################################################################
@@ -127,17 +134,17 @@ fi
 
 if [ $step -le 4 ]; then
     
-    echo "Start Traing RNN(LSTM or BLSTM) model."
+    echo "Start Decoding."
     decode=1
     batch_size=1
-    tr_cmd=CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL python run_lstm.py \
+     tr_cmd="python run_lstm.py \
     --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
     --decode=$decode --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
     --input_size=$input_size --output_size=$output_size  --assign=$assignment --resume_training=$resume_training \
-    --model_type=$model_type 
-    echo "Step 4: Decoding and reconstructe wav \n"
+    --model_type=$model_type "
+
     echo $tr_cmd
-    $tr_cmd
+    CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL $tr_cmd
 fi
 #####################################################################################################
 #   NOTE for STEP 5:                                                                              ###
