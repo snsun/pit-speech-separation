@@ -21,7 +21,7 @@ tfrecords_dir=/home/disk1/jqliu/LSTM_PIT/zoom_fft/8k_czt/
 inputs_cmvn=$kaldi_feats_dir/tr_inputs/cmvn.ark
 labels_cmvn=''
 
-gpu_id=0
+gpu_id='0'
 TF_CPP_MIN_LOG_LEVEL=1
 rnn_num_layers=2
 tr_batch_size=32
@@ -31,6 +31,7 @@ output_size=129
 rnn_size=128
 keep_prob=0.8
 learning_rate=0.0005
+halving_factor=0.7
 decode=0
 model_type=BLSTM
 prefix=ZoomFFT
@@ -117,13 +118,14 @@ if [ $step -le 3 ]; then
     for x in tr tt cv; do
         find $tfrecords_dir/${x}/ -iname "*.tfrecords" > $lists_dir/${x}.lst
     done
-    tr_cmd=CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL python run_lstm.py \
+    tr_cmd="python run_lstm.py \
     --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
     --decode=$decode --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
     --input_size=$input_size --output_size=$output_size  --assign=$assignment --resume_training=$resume_training \
-    --model_type=$model_type 
+    --model_type=$model_type --halving_factor=$halving_factor "
+
     echo $tr_cmd
-    $tr_cmd
+    CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL $tr_cmd
 fi
 
 #####################################################################################################
@@ -133,17 +135,17 @@ fi
 
 if [ $step -le 4 ]; then
     
-    echo "Start Traing RNN(LSTM or BLSTM) model."
+    echo "Start Decoding."
     decode=1
     batch_size=1
-    tr_cmd=CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL python run_lstm.py \
+     tr_cmd="python run_lstm.py \
     --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
     --decode=$decode --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
     --input_size=$input_size --output_size=$output_size  --assign=$assignment --resume_training=$resume_training \
-    --model_type=$model_type 
-    echo "Step 4: Decoding and reconstructe wav \n"
+    --model_type=$model_type "
+
     echo $tr_cmd
-    $tr_cmd
+    CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL $tr_cmd
 fi
 #####################################################################################################
 #   NOTE for STEP 5:                                                                              ###
