@@ -8,7 +8,7 @@
 #   3. Traing & Test model: Tensorflow
 
 step=3
-feats_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/feats_8k_czt/
+kaldi_feats_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/feats_8k_czt/
           #give the feature dir where you store your feats, it must includes {tr, cv, tt}_{inputs, labels} dirctories
 copy_labels=false
 
@@ -16,7 +16,7 @@ lists_dir=./tmp/lists/ #lists_dir is used to store some necessary files lists
 apply_cmvn=1
 num_threads=12
 tfrecords_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/tfrecords/8k_czt/
-inputs_cmvn=$feats_dir/tr_inputs/cmvn.ark
+inputs_cmvn=$kaldi_feats_dir/tr_inputs/cmvn.ark
 labels_cmvn=''
 
 gpu_id=0
@@ -44,7 +44,7 @@ ori_wav_path=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speak
 rec_wav_path=data/wav/rec/${name}_${assignment}/
 
 #Step 0: extract features using matlab program. 
-#    Note: You need to change the data_dir path and feats_dir path in 
+#    Note: You need to change the data_dir path and kaldi_feats_dir path in 
 #          matlab_feats_extraction/extract_czt_fft_feats.m  accordng to your config;
 
 if [ $step -le 0 ]; then
@@ -55,7 +55,7 @@ fi
 
 #####################################################################################################
 #   NOTE for STEP 1:                                                                              ###
-#       1.you need to check if you give the right 'feats_dir' and 'copy_labels' in config session ###
+#       1.you need to check if you give the right 'kaldi_feats_dir' and 'copy_labels' in config session ###
 #       2.make sure that your path.sh includes the right Kaldi path!!                             ###
 #####################################################################################################
 if [ $step -le 1 ] ; then
@@ -65,14 +65,14 @@ if [ $step -le 1 ] ; then
     for x in tr cv tt; do 
         if $copy_labels; then
             for y in inputs labels;do
-                copy-feats ark:$feats_dir/${x}_${y}/feats.txt ark,scp:$feats_dir/${x}_${y}/feats.ark,$feats_dir/${x}_${y}/feats.scp &
+                copy-feats ark:$kaldi_feats_dir/${x}_${y}/feats.txt ark,scp:$kaldi_feats_dir/${x}_${y}/feats.ark,$kaldi_feats_dir/${x}_${y}/feats.scp &
             done
         else
             for y in inputs; do
-                copy-feats ark:$feats_dir/${x}_${y}/feats.txt ark,scp:$feats_dir/${x}_${y}/feats.ark,$feats_dir/${x}_${y}/feats.scp &
+                copy-feats ark:$kaldi_feats_dir/${x}_${y}/feats.txt ark,scp:$kaldi_feats_dir/${x}_${y}/feats.ark,$kaldi_feats_dir/${x}_${y}/feats.scp &
             done
         fi
-        compute-cmvn-stats ark:$feats_dir/${x}_inputs/feats.txt $feats_dir/${x}_${y}/cmvn.ark &
+        compute-cmvn-stats ark:$kaldi_feats_dir/${x}_inputs/feats.txt $kaldi_feats_dir/${x}_${y}/cmvn.ark &
     done
     wait 
 fi
@@ -92,7 +92,7 @@ fi
 if [ $step -le 2 ] ; then
     echo "Transform the kaldi features to tf records"
     for mode in tt tr cv; do # generated list name is $lists_dir/$mode_feats_mapping.lst
-        python utils/makelists.py $feats_dir  $mode $lists_dir
+        python utils/makelists.py $kaldi_feats_dir  $mode $lists_dir
         python utils/convert_to_records.py --mapping_list=$lists_dir/${mode}_feats_mapping.lst \
         --inputs_cmvn=$inputs_cmvn --labels_cmvn=$labels_cmvn --output_dir=$tfrecords_dir/$mode/ --num_threads=$num_threads\
         --apply_cmvn=$apply_cmvn & 
