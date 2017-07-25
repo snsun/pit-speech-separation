@@ -7,10 +7,10 @@
 %%    for target because we have had the feature. If you don't have
 %%    targets features, please uncomment this part.
 
-mode1 = {'cv', 'tt'}; % in order to run parallelly, extract 'tr', 'cv' and 'tt' separately
+mode1 = {'tr'}; % in order to run parallelly, extract 'tr', 'cv' and 'tt' separately
 mode_len = length(mode1);
-data_dir = '../data/2speakers/wav8k/min/'; %CHANGE THE DIR TO YOUR DATA
-feats_dir = '../feats_8k_czt/';    %CHANGE THE DIR TO WHERE YOU WANT TO STORE THE FEATURES
+data_dir = '../..//kaldi/data/wsj0/create-speaker-mixtures//data/2speakers/wav8k/min/'; %CHANGE THE DIR TO YOUR DATA
+feats_dir = '../50_500_64_zoomfft/feats_8k_czt/';    %CHANGE THE DIR TO WHERE YOU WANT TO STORE THE FEATURES
 for idx=1:mode_len
     mode = mode1{idx};
     input_dir = [data_dir  mode '/']; 
@@ -35,8 +35,8 @@ for idx=1:mode_len
     frame_shift = 128;
 
     f1 = 50; %in Hz, CZT start freq
-    f2 = 1000; %in Hz, CZT end freq
-    M = 128; % CZT poits
+    f2 = 500; %in Hz, CZT end freq
+    M = 64; % CZT poits
     w=exp(-j*2*pi*(f2-f1)/(M*fs));% for CZT
     a=exp(j*2*pi*f1/fs);% for CZT
 

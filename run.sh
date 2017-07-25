@@ -16,8 +16,7 @@ lists_dir=./tmp/lists/ #lists_dir is used to store some necessary files lists
 mkdir -p $lists_dir
 apply_cmvn=1
 num_threads=12
-#tfrecords_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/tfrecords/8k_czt/
-tfrecords_dir=/home/disk1/jqliu/LSTM_PIT/zoom_fft/8k_czt/
+tfrecords_dir=data/tfrecords/50_500_64_zoomfft/
 inputs_cmvn=$kaldi_feats_dir/tr_inputs/cmvn.ark
 labels_cmvn=''
 
@@ -26,7 +25,7 @@ TF_CPP_MIN_LOG_LEVEL=1
 rnn_num_layers=2
 tr_batch_size=32
 tt_batch_size=1
-input_size=257
+input_size=193
 output_size=129
 rnn_size=128
 keep_prob=0.8
@@ -96,8 +95,8 @@ fi
 if [ $step -le 2 ] ; then
     echo "Transform the kaldi features to tf records"
     for mode in tt tr cv; do # generated list name is $lists_dir/$mode_feats_mapping.lst
-        python utils/makelists.py $kaldi_feats_dir  $mode $lists_dir
-        python utils/convert_to_records.py --mapping_list=$lists_dir/${mode}_feats_mapping.lst \
+        python local/makelists.py $kaldi_feats_dir  $mode $lists_dir
+        python local/convert_to_records.py --mapping_list=$lists_dir/${mode}_feats_mapping.lst \
         --inputs_cmvn=$inputs_cmvn --labels_cmvn=$labels_cmvn --output_dir=$tfrecords_dir/$mode/ --num_threads=$num_threads\
         --apply_cmvn=$apply_cmvn & 
 

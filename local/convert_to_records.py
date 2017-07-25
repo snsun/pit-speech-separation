@@ -17,8 +17,8 @@ import multiprocessing
 import numpy as np
 import tensorflow as tf
 
-sys.path.append(os.path.dirname(sys.path[0]))
-from tfrecords_io import make_sequence_example_two_labels
+sys.path.append('./')
+from io_funcs.tfrecords_io import make_sequence_example_two_labels
 
 tf.logging.set_verbosity(tf.logging.INFO)
 

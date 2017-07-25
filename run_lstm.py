@@ -222,12 +222,15 @@ def train():
                 if not os.path.exists(ckpt_dir):
                     os.makedirs(ckpt_dir)
                 ckpt_path = os.path.join(ckpt_dir, ckpt_name)
-
-                # Accept or reject new parameters
+                best_path = ckpt_path
+                # Relative loss between previous and current val_loss
+                rel_impr = (loss_prev - val_loss) / loss_prev
+                best_path = ckpt_path
+               # Accept or reject new parameters
                 if val_loss < loss_prev :
                     tr_model.saver.save(sess, ckpt_path)
-                    best_path = ckpt_path
                     # Logging train loss along with validation loss
+                    loss_prev = val_loss
                     tf.logging.info(
                         "ITERATION %d: TRAIN AVG.LOSS %.4f, (lrate%e) CROSSVAL"
                         " AVG.LOSS %.4f, %s (%s), TIME USED: %.2fs"% (
@@ -242,10 +245,6 @@ def train():
                             epoch + 1, tr_loss, FLAGS.learning_rate, val_loss,
                             "nnet rejected", ckpt_name,
                             (end_time - start_time) / 1))
-
-                # Relative loss between previous and current val_loss
-                rel_impr = (loss_prev - val_loss) / loss_prev
-                loss_prev = val_loss
 
                 # Start halving when improvement is low
                 if rel_impr < FLAGS.start_halving_impr:
