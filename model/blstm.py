@@ -131,8 +131,8 @@ class LSTM(object):
             self._activations2 = tf.reshape(
                 mask2, [config.batch_size, -1, config.output_size])
 
-            self._cleaned1 = self._activations1*self._mixed[:,:,64:]
-            self._cleaned2 = self._activations2*self._mixed[:,:,64:]
+            self._cleaned1 = self._activations1*self._mixed[:,:,128:]
+            self._cleaned2 = self._activations2*self._mixed[:,:,128:]
         # Ability to save the model
         self.saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=30)
 

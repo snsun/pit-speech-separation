@@ -84,44 +84,44 @@ def decode():
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 
-        try:
-            for batch in xrange(num_batches):
-                if coord.should_stop():
-                    break
-                if FLAGS.assign == 'def':
-                    cleaned1, cleaned2 = sess.run([model._cleaned1, model._cleaned2])
-                else:
-                    x1, x2  = model.get_opt_output()
-                    cleaned1, cleaned2 = sess.run([x1, x2])
+    try:
+       for batch in xrange(num_batches):
+           if coord.should_stop():
+               break
+           if FLAGS.assign == 'def':
+               cleaned1, cleaned2 = sess.run([model._cleaned1, model._cleaned2])
+           else:
+               x1, x2  = model.get_opt_output()
+               cleaned1, cleaned2 = sess.run([x1, x2])
 
-                #sequence = activations * cmvn['stddev_labels'] + \
-                #    cmvn['mean_labels']
-      
-                tffilename = tfrecords_lst[batch]
-                (_, name)=os.path.split(tffilename)
-                (uttid, _) = os.path.splitext(name)
-                (partname, _) = os.path.splitext(uttid)
-                #np.savetxt('data/mask/'+partname + '_1.mask', m1)
-                #np.savetxt('data/mask/'+partname + '_2.mask', m2)
-                kaldi_writer1 = kio.ArkWriter(data_dir +'/' + partname + '_1.wav.scp')
-                kaldi_writer2 = kio.ArkWriter(data_dir +'/' + partname  + '_2.wav.scp')
-                kaldi_writer1.write_next_utt(data_dir +'/' + partname + '_1.wav.ark', uttid, cleaned1[0,:,:])
-                kaldi_writer2.write_next_utt(data_dir +'/' + partname + '_2.wav.ark', uttid, cleaned2[0,:, :])
-                kaldi_writer1.close()
-                kaldi_writer2.close()
-                if batch % 500 == 0:
-                    print(batch )
+           #sequence = activations * cmvn['stddev_labels'] + \
+           #    cmvn['mean_labels']
+    
+           tffilename = tfrecords_lst[batch]
+           (_, name)=os.path.split(tffilename)
+           (uttid, _) = os.path.splitext(name)
+           (partname, _) = os.path.splitext(uttid)
+           #np.savetxt('data/mask/'+partname + '_1.mask', m1)
+           #np.savetxt('data/mask/'+partname + '_2.mask', m2)
+           kaldi_writer1 = kio.ArkWriter(data_dir +'/' + partname + '_1.wav.scp')
+           kaldi_writer2 = kio.ArkWriter(data_dir +'/' + partname  + '_2.wav.scp')
+           kaldi_writer1.write_next_utt(data_dir +'/' + partname + '_1.wav.ark', uttid, cleaned1[0,:,:])
+           kaldi_writer2.write_next_utt(data_dir +'/' + partname + '_2.wav.ark', uttid, cleaned2[0,:, :])
+           kaldi_writer1.close()
+           kaldi_writer2.close()
+           if batch % 500 == 0:
+               print(batch )
 
-        except Exception, e:
-            # Report exceptions to the coordinator.
-            coord.request_stop(e)
-        finally:
-            # Terminate as usual.  It is innocuous to request stop twice.
-            coord.request_stop()
-            coord.join(threads)
+    except Exception, e:
+       # Report exceptions to the coordinator.
+       coord.request_stop(e)
+    finally:
+       # Terminate as usual.  It is innocuous to request stop twice.
+       coord.request_stop()
+       coord.join(threads)
 
-        tf.logging.info("Done decoding.")
-        sess.close()
+    tf.logging.info("Done decoding.")
+    sess.close()
 
 
 def train_one_epoch(sess, coord, tr_model, tr_num_batches):

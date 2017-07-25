@@ -25,7 +25,7 @@ TF_CPP_MIN_LOG_LEVEL=1
 rnn_num_layers=2
 tr_batch_size=32
 tt_batch_size=1
-input_size=193
+input_size=257
 output_size=129
 rnn_size=128
 keep_prob=0.8
@@ -137,8 +137,7 @@ if [ $step -le 4 ]; then
     echo "Start Decoding."
     decode=1
     batch_size=1
-     tr_cmd="python run_lstm.py \
-    --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
+     tr_cmd="python -u run_lstm.py --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
     --decode=$decode --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
     --input_size=$input_size --output_size=$output_size  --assign=$assignment --resume_training=$resume_training \
     --model_type=$model_type "

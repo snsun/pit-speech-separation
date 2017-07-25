@@ -1,7 +1,7 @@
 mixed_wav_dir = '/home/disk1/jqliu/LSTM_PIT/data/wav/mix_tt_8k/';
 spk1_dir = '/home/disk1/jqliu/LSTM_PIT/data/wav/ori_sep_tt_8k/s1/';
 spk2_dir = '/home/disk1/jqliu/LSTM_PIT/data/wav/ori_sep_tt_8k/s2/';
-model_name='ZoomFFT_BLSTM_2_128_def';
+model_name='ZoomFFT_BLSTM_2_128_opt';
 rec_wav_dir = ['../data/wav/rec/' model_name  '/'];
 lists = dir(spk2_dir);
 len = length(lists) - 2;
@@ -34,7 +34,7 @@ for i = 3:len+2
         i
     end
 end
-printf('The mean SDR is %f':, mean(mean(SDR)))
+fprintf('The mean SDR is %f':, mean(mean(SDR)))
 save(['sdr_' model_name], 'SDR', 'SAR', 'SIR', 'lists');
 
 % Calculte different gender case
