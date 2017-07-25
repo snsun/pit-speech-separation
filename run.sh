@@ -7,7 +7,7 @@
 #      We define the tf records format for our task, please see the codes for the details
 #   3. Traing & Test model: Tensorflow
 
-step=3
+step=4
 kaldi_feats_dir=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/feats_8k_czt/
           #give the feature dir where you store your feats, it must includes {tr, cv, tt}_{inputs, labels} dirctories
 copy_labels=false
@@ -35,7 +35,7 @@ halving_factor=0.7
 decode=0
 model_type=BLSTM
 prefix=ZoomFFT
-assignment=def
+assignment=opt
 name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}
 save_dir=exp/$name/
 data_dir=data/separated/${name}_${assignment}/
@@ -43,7 +43,7 @@ resume_training=false
 
 #for step 5
 #ori_wav_path=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/data/2speakers/wav8k/min/tt/mix/
-ori_wav_path=/home/disk1/jqliu/LSTM_PIT/data/wav/mix_8k_tt/
+ori_wav_path=/home/disk1/jqliu/LSTM_PIT/data/wav/mix_tt_8k/
   #rec_wav_path=data/wav/rec_deepcluster_${fs}_${assign}/
 rec_wav_path=data/wav/rec/${name}_${assignment}/
 
