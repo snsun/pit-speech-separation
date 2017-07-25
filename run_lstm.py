@@ -195,6 +195,7 @@ def train():
             if ckpt and ckpt.model_checkpoint_path:
                 tf.logging.info("restore from" + ckpt.model_checkpoint_path)
                 tr_model.saver.restore(sess, ckpt.model_checkpoint_path)
+                best_path = ckpt.model_checkpoint_path
             else:
                 tf.logging.fatal("checkpoint not found")
         coord = tf.train.Coordinator()
@@ -222,15 +223,14 @@ def train():
                 if not os.path.exists(ckpt_dir):
                     os.makedirs(ckpt_dir)
                 ckpt_path = os.path.join(ckpt_dir, ckpt_name)
-                best_path = ckpt_path
                 # Relative loss between previous and current val_loss
                 rel_impr = (loss_prev - val_loss) / loss_prev
-                best_path = ckpt_path
                # Accept or reject new parameters
                 if val_loss < loss_prev :
                     tr_model.saver.save(sess, ckpt_path)
                     # Logging train loss along with validation loss
                     loss_prev = val_loss
+                    best_path = ckpt_path
                     tf.logging.info(
                         "ITERATION %d: TRAIN AVG.LOSS %.4f, (lrate%e) CROSSVAL"
                         " AVG.LOSS %.4f, %s (%s), TIME USED: %.2fs"% (
