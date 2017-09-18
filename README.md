@@ -1,6 +1,6 @@
 This project is used for PIT training of two speakers.
 
-We use Tensorflow LSTM(BLSTM) to do PIT.
+We use Tensorflow(1.0) LSTM(BLSTM) to do PIT.
 
 Reference:
 
