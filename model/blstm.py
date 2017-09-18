@@ -130,9 +130,13 @@ class LSTM(object):
                 mask1, [config.batch_size, -1, config.output_size])
             self._activations2 = tf.reshape(
                 mask2, [config.batch_size, -1, config.output_size])
+            # in general, config.czt_dim == 0; However, we found that if we concatenate
+            # 128 dim chrip-z transform feats to FFT feats, we got better SDR performance
+            # for the same gender case. 
 
-            self._cleaned1 = self._activations1*self._mixed[:,:,128:]
-            self._cleaned2 = self._activations2*self._mixed[:,:,128:]
+            # so , if you don't use czt feats (just the fft feats), config.czt_dim=0
+            self._cleaned1 = self._activations1*self._mixed[:,:,config.czt_dim:]
+            self._cleaned2 = self._activations2*self._mixed[:,:,config.czt_dim:]
         # Ability to save the model
         self.saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=30)
 

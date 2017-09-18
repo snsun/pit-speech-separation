@@ -313,7 +313,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--input_size',
         type=int,
-        default=257,
+        default=129,
         help="The dimension of input."
     )
     parser.add_argument(
@@ -322,7 +322,13 @@ if __name__ == "__main__":
         default=129,
         help="The dimension of output."
     )
-    
+    parser.add_argument(
+        '--czt_dim',
+        type=int,
+        default=0,
+        help="chrip-z transform feats dimension. it should be 0 if you just use fft spectrum feats"
+    )
+ 
     parser.add_argument(
         '--rnn_size',
         type=int,
