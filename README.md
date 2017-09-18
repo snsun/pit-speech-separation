@@ -1,6 +1,9 @@
 This project is used for PIT training of two speakers.
+
 We use Tensorflow LSTM(BLSTM) to do PIT.
+
 Reference:
+
   Kolbæk, M., Yu, D., Tan, Z.-H., & Jensen, J. (2017). Multi-talker Speech Separation and Tracing with Permutation Invariant Training of Deep Recurrent Neural Networks, 1–10. Retrieved from http://arxiv.org/abs/1703.06284
 
 # How to prepare data
