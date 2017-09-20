@@ -31,23 +31,19 @@ class LSTM(object):
                 config.batch_size: the batch_size for training
                 config.rnn_num_layers: the rnn layers numbers
                 config.keep_prob: the dropout rate
-        inputs_spk1: the speech feature of speaker1
-        inputs_spk2: the speech feature of speaker2
+        inputs: the mix  speech feature of speaker1
         labels: "two hot" target label
         infer: bool, if training(false) or test (true)
     """
 
-    def __init__(self, config, inputs_spk1,inputs_spk2, labels, lengths, infer=False):
-        self._inputs_spk1 = inputs_spk1
-        self._inputs_spk2 = inputs_spk2
+    def __init__(self, config, inputs, labels, lengths, infer=False):
+        self._inputs = inputs
         self._labels = labels
         self._lengths = lengths
         self._model_type = config.model_type
         if infer: # if infer, we prefer to run one utterance one time. 
             config.batch_size = 1
-        spk1_spk2 = tf.concat([self._inputs_spk1,self._inputs_spk2],-1)
-        spk2_spk1 = tf.concat([self._inputs_spk2,self._inputs_spk1],-1)
-        outputs = tf.concat([spk1_spk2,spk2_spk1],0)
+        outputs = self._inputs
         ## This first layer-- feed forward layer
         ## Transform the input to the right size before feed into RNN
 
