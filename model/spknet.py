@@ -48,7 +48,7 @@ class LSTM(object):
         ## Transform the input to the right size before feed into RNN
 
         with tf.variable_scope('forward1'):
-            outputs = tf.reshape(outputs, [-1, config.input_size*2])
+            outputs = tf.reshape(outputs, [-1, config.input_size])
             outputs = tf.layers.dense(outputs, units=config.rnn_size,
                                       activation=tf.nn.tanh,
                                       reuse=tf.get_variable_scope().reuse)
