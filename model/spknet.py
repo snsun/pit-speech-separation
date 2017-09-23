@@ -31,8 +31,9 @@ class LSTM(object):
                 config.batch_size: the batch_size for training
                 config.rnn_num_layers: the rnn layers numbers
                 config.keep_prob: the dropout rate
-        inputs: the mix  speech feature of speaker1
+        inputs: [A,B], a T*(2D) matrix 
         labels: "two hot" target label
+        lengths: the length  of every utterance
         infer: bool, if training(false) or test (true)
     """
 
