@@ -103,11 +103,16 @@ class LSTM(object):
 
         with tf.variable_scope('forward2'):
             if self._model_type.lower() == 'blstm':
-                outputs = tf.reshape(outputs, [-1, 2*config.rnn_size])
+                outputs = tf.reshape(outputs, [config.batch_size,-1, 2*config.rnn_size])
                 in_size=2*config.rnn_size
             else:
-                outputs = tf.reshape(outputs, [-1, config.rnn_size])
+                outputs = tf.reshape(outputs, [config.batch_size,-1, config.rnn_size])
                 in_size = config.rnn_size
+
+            if config.embedding_option == 1:
+                outputs = outputs[:,self._length]
+            else:
+                outputs = tf.reduce_mean(outputs,1)         
             out_size = config.output_size
             weights1 = tf.get_variable('weights1', [in_size, out_size],
             initializer=tf.random_normal_initializer(stddev=0.01))
