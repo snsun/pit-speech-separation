@@ -111,7 +111,13 @@ class LSTM(object):
                 in_size = config.rnn_size
 
             if config.embedding_option == 1:
-                outputs = outputs[:,self._length]
+                ind = tf.subtract(self._lengths, tf.constant(1))
+                batch_range = tf.range(config.batch_size)
+                indices = tf.stack([batch_range, ind], axis=1)
+
+                outputs = tf.gather_nd(outputs, indices)
+                self._labels = tf.reduce_mean(self._labels, 1) 
+                print(outputs.shape)
             else:
                 outputs = tf.reduce_mean(outputs,1)         
             out_size = config.output_size
@@ -119,7 +125,8 @@ class LSTM(object):
             initializer=tf.random_normal_initializer(stddev=0.01))
             biases1 = tf.get_variable('biases1', [out_size],
             initializer=tf.constant_initializer(0.0))
-            outputs = tf.nn.softmax(tf.matmul(outputs, weights1) + biases1)
+            outputs = tf.nn.sigmoid(tf.matmul(outputs, weights1) + biases1)
+            self._outputs = outputs
         # Ability to save the model
         self.saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=30)
 
@@ -127,7 +134,7 @@ class LSTM(object):
        
        
         # Compute loss(Mse)
-        self._loss = tf.reduce_mean(-tf.reduce_sum(tf.log(outputs)*self._labels))
+        self._loss = tf.losses.mean_squared_error(self._labels, outputs)
 
         if tf.get_variable_scope().reuse: return
 
@@ -173,6 +180,10 @@ class LSTM(object):
     @property
     def train_op(self):
         return self._train_op
+    @property
+    def outputs(self):
+        return self._outputs
+
 
     @staticmethod
     def _weight_and_bias(in_size, out_size):

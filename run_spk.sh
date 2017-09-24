@@ -3,7 +3,7 @@
 # This recipe is used to train NN for speaker recognition
 
 
-lists_dir=./tmp/lists/ #lists_dir is used to store some necessary files lists
+lists_dir=./tmp/lists_spker/ #lists_dir is used to store some necessary files lists
 mkdir -p $lists_dir
 apply_cmvn=1
 num_threads=12
@@ -16,18 +16,18 @@ tr_batch_size=32
 tt_batch_size=1
 input_size=258
 output_size=101
-rnn_size=128
+rnn_size=64
 keep_prob=0.8
 learning_rate=0.0005
 halving_factor=0.7
 decode=0
-model_type=BLSTM
+model_type=LSTM
 prefix=spknet
 name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}
 save_dir=exp/spknet/$name/
 data_dir=data/spknet/${name}/
 resume_training=false
-embedding_option=0
+embedding_option=1
 
 echo "Start Traing spknet"
 batch_size=32
