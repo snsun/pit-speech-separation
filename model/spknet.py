@@ -111,6 +111,7 @@ class LSTM(object):
                 in_size = config.rnn_size
 
             if config.embedding_option == 1:
+            #http://sqrtf.com/fetch-rnn-encoder-last-output-using-tf-gather_nd/
                 ind = tf.subtract(self._lengths, tf.constant(1))
                 batch_range = tf.range(config.batch_size)
                 indices = tf.stack([batch_range, ind], axis=1)
