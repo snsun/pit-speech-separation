@@ -103,40 +103,50 @@ class LSTM(object):
         ## Feed forward layer. Transform the RNN output to the right output size
 
         with tf.variable_scope('forward2'):
-            if self._model_type.lower() == 'blstm':
-                outputs = tf.reshape(outputs, [config.batch_size,-1, 2*config.rnn_size])
-                in_size=2*config.rnn_size
-            else:
-                outputs = tf.reshape(outputs, [config.batch_size,-1, config.rnn_size])
-                in_size = config.rnn_size
+            if config.embedding_option == 0: #no embedding , frame by frame
+                if self._model_type.lower() == 'blstm':
+                    outputs = tf.reshape(outputs, [-1, 2*config.rnn_size])
+                    in_size=2*config.rnn_size
+                else:
+                    outputs = tf.reshape(outputs, [-1, config.rnn_size])
+                    in_size = config.rnn_size
 
-            if config.embedding_option == 1:
-            #http://sqrtf.com/fetch-rnn-encoder-last-output-using-tf-gather_nd/
-                ind = tf.subtract(self._lengths, tf.constant(1))
-                batch_range = tf.range(config.batch_size)
-                indices = tf.stack([batch_range, ind], axis=1)
-
-                outputs = tf.gather_nd(outputs, indices)
-                self._labels = tf.reduce_mean(self._labels, 1) 
-                print(outputs.shape)
             else:
-                outputs = tf.reduce_mean(outputs,1)         
+                if self._model_type.lower() == 'blstm':
+                    outputs = tf.reshape(outputs, [config.batch_size,-1, 2*config.rnn_size])
+                    in_size=2*config.rnn_size
+                else:
+                    outputs = tf.reshape(outputs, [config.batch_size,-1, config.rnn_size])
+                    in_size = config.rnn_size
+
+                if config.embedding_option == 1:  #last frame embedding
+                    #http://sqrtf.com/fetch-rnn-encoder-last-output-using-tf-gather_nd/
+                    ind = tf.subtract(self._lengths, tf.constant(1))
+                    batch_range = tf.range(config.batch_size)
+                    indices = tf.stack([batch_range, ind], axis=1)
+
+                    outputs = tf.gather_nd(outputs, indices)
+                    self._labels = tf.reduce_mean(self._labels, 1) 
+                elif config.embedding_option == 2: # mean pooing
+                    outputs = tf.reduce_mean(outputs,1)         
+                    self._labels = tf.reduce_mean(self._labels, 1) 
             out_size = config.output_size
             weights1 = tf.get_variable('weights1', [in_size, out_size],
             initializer=tf.random_normal_initializer(stddev=0.01))
             biases1 = tf.get_variable('biases1', [out_size],
             initializer=tf.constant_initializer(0.0))
-            outputs = tf.nn.sigmoid(tf.matmul(outputs, weights1) + biases1)
-            self._outputs = outputs
+            outputs = tf.matmul(outputs, weights1) + biases1
+            if config.embedding_option == 0:
+                outputs = tf.reshape(outputs, [config.batch_size, -1, out_size])
+            self._outputs = tf.nn.sigmoid(outputs)
         # Ability to save the model
         self.saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=30)
 
         if infer: return
        
        
-        # Compute loss(Mse)
-        self._loss = tf.losses.mean_squared_error(self._labels, outputs)
-
+        # Compute loss(CE)
+        self._loss=tf.losses.sigmoid_cross_entropy(self._labels, outputs)
         if tf.get_variable_scope().reuse: return
 
         self._lr = tf.Variable(0.0, trainable=False)

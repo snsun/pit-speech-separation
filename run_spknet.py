@@ -16,7 +16,7 @@ import tensorflow as tf
 
 import io_funcs.kaldi_io as kio
 from model.spknet import LSTM
-from io_funcs.tfrecords_io import get_padded_batch
+from io_funcs.tfrecords_io import get_padded_expand_batch
 from local.utils import pp, show_all_variables
 
 FLAGS = None
@@ -75,12 +75,12 @@ def train():
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
             with tf.name_scope('input'):
-                tr_inputs,tr_labels,tr_lengths = get_padded_batch(
+                tr_inputs,tr_labels,tr_lengths = get_padded_expand_batch(
                     tr_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size,
                     FLAGS.output_size, num_enqueuing_threads=FLAGS.num_threads,
                     num_epochs=FLAGS.max_epochs)
 
-                val_inputs,val_labels,val_lengths = get_padded_batch(
+                val_inputs,val_labels,val_lengths = get_padded_expand_batch(
                     val_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size,
                     FLAGS.output_size, num_enqueuing_threads=FLAGS.num_threads,
                     num_epochs=FLAGS.max_epochs + 1)

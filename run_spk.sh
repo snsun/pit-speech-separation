@@ -9,7 +9,7 @@ apply_cmvn=1
 num_threads=12
 tfrecords_dir=data/tfrecords/spknet/
 
-gpu_id='0'
+gpu_id='1'
 TF_CPP_MIN_LOG_LEVEL=1
 rnn_num_layers=2
 tr_batch_size=32
@@ -26,15 +26,15 @@ prefix=spknet
 name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}
 save_dir=exp/spknet/$name/
 data_dir=data/spknet/${name}/
-resume_training=false
-embedding_option=1
+resume_training=true
+embedding_option=0
 
 echo "Start Traing spknet"
 batch_size=32
 for x in tr cv; do
 find $tfrecords_dir/${x}/ -iname "*.tfrecords" > $lists_dir/${x}.lst
 done
-tr_cmd="python run_spknet.py \
+tr_cmd="python -m pdb run_spknet.py \
 --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
 --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
 --input_size=$input_size --output_size=$output_size  --resume_training=$resume_training \
