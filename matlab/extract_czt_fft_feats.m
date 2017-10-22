@@ -7,10 +7,10 @@
 %%    for target because we have had the feature. If you don't have
 %%    targets features, please uncomment this part.
 
-mode1 = {'tr'}; % in order to run parallelly, extract 'tr', 'cv' and 'tt' separately
+mode1 = {'cv','tt'}; % in order to run parallelly, extract 'tr', 'cv' and 'tt' separately
 mode_len = length(mode1);
-data_dir = '../..//kaldi/data/wsj0/create-speaker-mixtures//data/2speakers/wav8k/min/'; %CHANGE THE DIR TO YOUR DATA
-feats_dir = '../50_1000_128_zoomfft/feats_8k_czt_psm';    %CHANGE THE DIR TO WHERE YOU WANT TO STORE THE FEATURES
+data_dir = '../data/wav/wav8k/min/'; %CHANGE THE DIR TO YOUR DATA
+feats_dir = '../data/feats/50_1000_128_zoomfft/feats_8k_czt_psm';    %CHANGE THE DIR TO WHERE YOU WANT TO STORE THE FEATURES
 for idx=1:mode_len
     mode = mode1{idx};
     input_dir = [data_dir  mode '/']; 
@@ -50,15 +50,15 @@ for idx=1:mode_len
         frames = enframe(wav, Win, frame_shift);
         X = fft(frames, fft_len, 2);
         theta_y=angle(X(:, 1:dim));
-        %Y = abs(X(:, 1:dim)); 
+        Y = abs(X(:, 1:dim)); 
         
         %CZT
 
-        %Y_c = abs(czt(frames', M, w, a));
-        %Y_c = Y_c';
-        %feats = [Y_c, Y];
+        Y_c = abs(czt(frames', M, w, a));
+        Y_c = Y_c';
+        feats = [Y_c, Y];
 
-        %writekaldifeatures(fid_feats, utt_id, feats);
+        writekaldifeatures(fid_feats, utt_id, feats);
         filename1 = [s1_dir utt_id];
         wav1 = audioread(filename1);
         frames = enframe(wav1, Win, frame_shift);
