@@ -7,10 +7,10 @@
 %%    for target because we have had the feature. If you don't have
 %%    targets features, please uncomment this part.
 
-mode1 = {'cv','tt'}; % in order to run parallelly, extract 'tr', 'cv' and 'tt' separately
+mode1 = {'tr'}; % in order to run parallelly, extract 'tr', 'cv' and 'tt' separately
 mode_len = length(mode1);
 data_dir = '../data/wav/wav8k/min/'; %CHANGE THE DIR TO YOUR DATA
-feats_dir = '../data/feats/50_1000_128_zoomfft/feats_8k_czt_psm';    %CHANGE THE DIR TO WHERE YOU WANT TO STORE THE FEATURES
+feats_dir = '../data/feats/50_1000_128_zoomfft/feats_8k_czt_psm/';    %CHANGE THE DIR TO WHERE YOU WANT TO STORE THE FEATURES
 for idx=1:mode_len
     mode = mode1{idx};
     input_dir = [data_dir  mode '/']; 

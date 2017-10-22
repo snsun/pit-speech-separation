@@ -8,7 +8,7 @@
 #   3. Traing & Test model: Tensorflow
 
 step=1
-kaldi_feats_dir=/home/disk2/snsun/workspace/separation/data/feats/50_1000_128_zoomfft/
+kaldi_feats_dir=/home/disk2/snsun/workspace/separation/data/feats/50_1000_128_zoomfft/feats_8k_czt_psm/
           #give the feature dir where you store your feats, it must includes {tr, cv, tt}_{inputs, labels} dirctories
 copy_labels=1
 
@@ -39,6 +39,7 @@ name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}
 save_dir=exp/$name/
 data_dir=data/separated/${name}_${assignment}/
 resume_training=false
+czt_dim=128
 
 #for step 5
 #ori_wav_path=/home/disk1/snsun/Workspace/tensorflow/kaldi/data/wsj0/create-speaker-mixtures/data/2speakers/wav8k/min/tt/mix/
