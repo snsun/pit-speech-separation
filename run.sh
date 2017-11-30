@@ -7,7 +7,7 @@
 #      We define the tf records format for our task, please see the codes for the details
 #   3. Traing & Test model: Tensorflow
 
-step=1
+step=3
 kaldi_feats_dir=/home/disk2/snsun/workspace/separation/data/feats/50_1000_128_zoomfft/feats_8k_czt_psm/
           #give the feature dir where you store your feats, it must includes {tr, cv, tt}_{inputs, labels} dirctories
 copy_labels=1
