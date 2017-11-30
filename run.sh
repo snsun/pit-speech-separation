@@ -123,7 +123,7 @@ if [ $step -le 3 ]; then
     --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
     --decode=$decode --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
     --input_size=$input_size --output_size=$output_size  --assign=$assignment --resume_training=$resume_training \
-    --model_type=$model_type --halving_factor=$halving_factor --czt_dim=128"
+    --model_type=$model_type --halving_factor=$halving_factor --czt_dim=$czt_dim"
 
     echo $tr_cmd
     CUDA_VISIBLE_DEVICES=$gpu_id TF_CPP_MIN_LOG_LEVEL=$TF_CPP_MIN_LOG_LEVEL $tr_cmd
