@@ -9,8 +9,8 @@
 
 mode1 = {'tr'}; % in order to run parallelly, extract 'tr', 'cv' and 'tt' separately
 mode_len = length(mode1);
-data_dir = '../data/wav/wav8k/min/'; %CHANGE THE DIR TO YOUR DATA
-feats_dir = '../data/feats/50_1000_128_zoomfft/feats_8k_czt_psm/';    %CHANGE THE DIR TO WHERE YOU WANT TO STORE THE FEATURES
+data_dir = '/home/disk2/snsun/workspace/separation/data/wav/wav8k/min/'; %CHANGE THE DIR TO YOUR DATA
+feats_dir = '../data/feats/50_1000_128_zoomfft/feats_8k_czt_psm2/';    %CHANGE THE DIR TO WHERE YOU WANT TO STORE THE FEATURES
 for idx=1:mode_len
     mode = mode1{idx};
     input_dir = [data_dir  mode '/']; 
@@ -48,9 +48,8 @@ for idx=1:mode_len
         filename = [mix_dir utt_id];
         wav = audioread(filename);
         frames = enframe(wav, Win, frame_shift);
-        X = fft(frames, fft_len, 2);
-        theta_y=angle(X(:, 1:dim));
-        Y = abs(X(:, 1:dim)); 
+        Xn = fft(frames, fft_len, 2);
+        Y = abs(Xn(:, 1:dim)); 
         
         %CZT
 
@@ -64,16 +63,16 @@ for idx=1:mode_len
         frames = enframe(wav1, Win, frame_shift);
         X = fft(frames , fft_len, 2);
         Y = abs(X(:, 1:dim));
-        theta_s = angle(X(:, 1:dim));
-        Y = Y.*cos(theta_y-theta_s);
+        theta = angle(X(:, 1:dim)./Xn(:, 1:dim));
+        Y = Y.*cos(theta);
         writekaldifeatures(fid_labels, [utt_id(1:end-4) '_1.wav'], Y);
         filename2 = [s2_dir utt_id];
         wav1 = audioread(filename2);
         frames = enframe(wav1, Win, frame_shift);
         X = fft(frames , fft_len, 2);
         Y = abs(X(:, 1:dim));
-         theta_s = angle(X(:, 1:dim));
-        Y = Y.*cos(theta_y-theta_s);
+          theta = angle(X(:, 1:dim)./Xn(:, 1:dim));
+        Y = Y.*cos(theta);
         writekaldifeatures(fid_labels, [utt_id(1:end-4) '_2.wav'], Y);   
         if mod(i, 100) == 0
               i
