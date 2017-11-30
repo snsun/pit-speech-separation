@@ -65,7 +65,7 @@ fi
 if [ $step -le 1 ] ; then
     echo " Feature format transformatio \n copy text ark to binary ark and scp and calculate the Mean and Variance for inputs." 
 
-    source path.sh #This is the Kaldi path file
+    . ./path.sh #This is the Kaldi path file
     for x in tr cv tt; do 
         if $copy_labels; then
             for y in inputs labels;do
