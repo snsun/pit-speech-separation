@@ -17,7 +17,7 @@ import tensorflow as tf
 
 import io_funcs.kaldi_io as kio
 from model.blstm import LSTM
-from io_funcs.tfrecords_io import get_padded_batch_v2
+from io_funcs.tfrecords_io import get_padded_batch
 from local.utils import pp, show_all_variables
 
 FLAGS = None
@@ -45,15 +45,15 @@ def decode():
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
             with tf.name_scope('input'):
-                tt_mixed,tt_inputs,tt_labels1, tt_labels2,tt_lengths = get_padded_batch_v2(
-                    tfrecords_lst, 1, FLAGS.input_size,
-                    FLAGS.output_size, num_enqueuing_threads=1,
+                tt_mixed,tt_labels,tt_genders,tt_lengths = get_padded_batch(
+                    tfrecords_lst, 1, FLAGS.input_size*2,
+                    FLAGS.output_size*2, num_enqueuing_threads=1,
                     num_epochs=1,shuffle=False)
-
-               
+                tt_inputs = tf.slice(tt_mixed, [0,0,0], [-1,-1, FLAGS.input_size])
+                tt_angles = tf.slice(tt_mixed,[0,0, FLAGS.input_size], [-1,-1, -1])            
         # Create two models with train_input and val_input individually.
         with tf.name_scope('model'):
-            model = LSTM(FLAGS, tt_inputs,tt_mixed, tt_labels1,tt_labels2,tt_lengths,infer=True)
+            model = LSTM(FLAGS, tt_inputs,tt_labels,tt_lengths,genders,infer=True)
 
 
         init = tf.group(tf.global_variables_initializer(),
@@ -89,7 +89,7 @@ def decode():
            if coord.should_stop():
                break
            if FLAGS.assign == 'def':
-               cleaned1, cleaned2 = sess.run([model._cleaned1, model._cleaned2])
+               cleaned1, cleaned2,angles, lengths = sess.run([model._cleaned1, model._cleaned2,tt_angles, tt_lengths])
            else:
                x1, x2  = model.get_opt_output()
                cleaned1, cleaned2 = sess.run([x1, x2])
@@ -155,30 +155,30 @@ def eval_one_epoch(sess, coord, val_model, val_num_batches):
     
     return val_loss
 def train():
-    tr_tfrecords_lst, tr_num_batches = read_list_file("tr", FLAGS.batch_size)
-    val_tfrecords_lst, val_num_batches = read_list_file("cv", FLAGS.batch_size)
+    tr_tfrecords_lst, tr_num_batches = read_list_file("tr_tf", FLAGS.batch_size)
+    val_tfrecords_lst, val_num_batches = read_list_file("cv_tf", FLAGS.batch_size)
   
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
             with tf.name_scope('input'):
-                tr_inputs,tr_inputs_cmvn, tr_labels1,tr_labels2,tr_lengths = get_padded_batch_v2(
-                    tr_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size,
-                    FLAGS.output_size, num_enqueuing_threads=FLAGS.num_threads,
+                tr_mixed,tr_labels,tr_genders,tr_lengths = get_padded_batch(
+                    tr_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size*2,
+                    FLAGS.output_size*2, num_enqueuing_threads=FLAGS.num_threads,
                     num_epochs=FLAGS.max_epochs)
 
-                val_inputs,val_inputs_cmvn, val_labels1,val_labels2,val_lengths = get_padded_batch_v2(
-                    val_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size,
-                    FLAGS.output_size, num_enqueuing_threads=FLAGS.num_threads,
+                val_mixed,val_labels,val_genders,val_lengths = get_padded_batch(
+                    val_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size*2,
+                    FLAGS.output_size*2, num_enqueuing_threads=FLAGS.num_threads,
                     num_epochs=FLAGS.max_epochs + 1)
-
+                tr_inputs = tf.slice(tr_mixed, [0,0,0], [-1,-1, FLAGS.input_size])
+                val_inputs = tf.slice(val_mixed, [0,0,0], [-1,-1, FLAGS.input_size])
      
 
         with tf.name_scope('model'):
-            tr_model = LSTM(FLAGS, tr_inputs_cmvn,tr_inputs, tr_labels1,tr_labels2,tr_lengths)
+            tr_model = LSTM(FLAGS, tr_inputs, tr_labels,tr_lengths,tr_genders)
             # tr_model and val_model should share variables
             tf.get_variable_scope().reuse_variables()
-            val_model = LSTM(FLAGS, val_inputs_cmvn,val_inputs, val_labels1,val_labels2,val_lengths)
-
+            val_model = LSTM(FLAGS, val_inputs, val_labels,val_lengths,val_genders)
         show_all_variables()
         init = tf.group(tf.global_variables_initializer(),
                         tf.local_variables_initializer())
