@@ -51,7 +51,7 @@ if [ $step -le 1 ]; then
     
     echo "Start Traing RNN(LSTM or BLSTM) model."
     decode=0
-    batch_size=40
+    batch_size=30
     for x in tr tt cv; do
         find $tfrecords_dir/${x}_psm/ -iname "*.tfrecords" > $lists_dir/${x}_tf.lst
     done
