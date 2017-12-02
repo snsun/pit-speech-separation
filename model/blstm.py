@@ -114,7 +114,12 @@ class LSTM(object):
             else:
                 outputs = tf.reshape(outputs, [-1, config.rnn_size])
                 in_size = config.rnn_size
+            #w1,b1 =self. _weight_and_bias("L_1",in_size,256)
+            #outputs1 = tf.nn.relu(tf.matmul(outputs,w1)+b1)
+            #w2,b2 = self._weight_and_bias("L_2",256,256)
+            #outputs2 = tf.nn.relu(tf.matmul(outputs1,w2)+b2+outputs1)
             out_size = config.output_size
+            #in_size=256
             weights1 = tf.get_variable('weights1', [in_size, out_size],
             initializer=tf.random_normal_initializer(stddev=0.01))
             biases1 = tf.get_variable('biases1', [out_size],
@@ -283,12 +288,12 @@ class LSTM(object):
         return self._train_op
 
     @staticmethod
-    def _weight_and_bias(in_size, out_size):
+    def _weight_and_bias(name,in_size, out_size):
         # Create variable named "weights".
-        weights = tf.get_variable('weights', [in_size, out_size],
+        weights = tf.get_variable(name+"_w", [in_size, out_size],
             initializer=tf.random_normal_initializer(stddev=0.01))
         # Create variabel named "biases".
-        biases = tf.get_variable('biases', [out_size],
+        biases = tf.get_variable(name+"_b", [out_size],
             initializer=tf.constant_initializer(0.0))
         return weights, biases
 def _unpack_cell(cell):
