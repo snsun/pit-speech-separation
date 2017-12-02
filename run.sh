@@ -36,7 +36,7 @@ assignment=def
 name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}
 save_dir=exp/$name/
 data_dir=data/separated/${name}_${assignment}/
-resume_training=false
+resume_training=true
 #Step 0: extract features using matlab program. 
 #    Note: You need to change the data_dir path and kaldi_feats_dir path in 
 #          matlab_feats_extraction/extract_czt_fft_feats.m  accordng to your config;
