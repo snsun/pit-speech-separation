@@ -7,7 +7,7 @@
 #      We define the tf records format for our task, please see the codes for the details
 #   3. Traing & Test model: Tensorflow
 
-step=2
+step=1
 
 lists_dir=./lists/ #lists_dir is used to store some necessary files lists
 mkdir -p $lists_dir
@@ -26,7 +26,7 @@ learning_rate=0.0005
 halving_factor=0.7
 decode=0
 model_type=BLSTM
-prefix=StandPsmPIT
+prefix=GenderPsmPIT
 assignment=def
 name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}
 save_dir=exp/$name/
@@ -55,7 +55,7 @@ if [ $step -le 1 ]; then
     for x in tr tt cv; do
         find $tfrecords_dir/${x}_psm/ -iname "*.tfrecords" > $lists_dir/${x}_tf.lst
     done
-    tr_cmd="python -u  run_lstm.py \
+    tr_cmd="python -u -m pdb run_lstm.py \
     --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
     --decode=$decode --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
     --input_size=$input_size --output_size=$output_size  --assign=$assignment --resume_training=$resume_training \
@@ -68,7 +68,7 @@ fi
 #   NOTE for STEP 2:                                                                              ###
 #       1. Make sure that you configure the RNN/data_dir/model_dir/ all rights                    ###
 #####################################################################################################
-
+exit
 if [ $step -le 2 ]; then
     
     echo "Start Decoding."

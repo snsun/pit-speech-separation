@@ -129,19 +129,78 @@ class LSTM(object):
                 mask1, [config.batch_size, -1, config.output_size])
             self._activations2 = tf.reshape(
                 mask2, [config.batch_size, -1, config.output_size])
+            weights3 = tf.get_variable('weights3', [in_size, out_size],
+            initializer=tf.random_normal_initializer(stddev=0.01))
+            biases3 = tf.get_variable('biases3', [out_size],
+            initializer=tf.constant_initializer(0.0))
+            weights4 = tf.get_variable('weights4', [in_size, out_size],
+            initializer=tf.random_normal_initializer(stddev=0.01))
+            biases4 = tf.get_variable('biases4', [out_size],
+            initializer=tf.constant_initializer(0.0))
+            mask3 = tf.nn.sigmoid(tf.matmul(outputs, weights3) + biases3)
+            mask4 = tf.nn.sigmoid(tf.matmul(outputs, weights4) + biases4)
+            self._activations1 = tf.reshape(
+                mask3, [config.batch_size, -1, config.output_size])
+            self._activations2 = tf.reshape(
+                mask4, [config.batch_size, -1, config.output_size])
+
             # in general, config.czt_dim == 0; However, we found that if we concatenate
             # 128 dim chrip-z transform feats to FFT feats, we got better SDR performance
             # for the same gender case. 
 
-            # so , if you don't use czt feats (just the fft feats), config.czt_dim=0
-            self._cleaned1 = self._activations1*self._mixed
-            self._cleaned2 = self._activations2*self._mixed
+                # so , if you don't use czt feats (just the fft feats), config.czt_dim=0
+            self.man1 = self._activations1*self._mixed
+            self.man2 = self._activations2*self._mixed
+            self.woman1 = self._activations1*self._mixed
+            self.woman2 = self._activations2*self._mixed
+        if infer: 
+            return
+        
+        loss = tf.Variable(0.0, tf.float32)
+        def standard_pit(cleaned1, cleaned2, labels1, labels2):
+            cost1 = tf.reduce_mean( tf.reduce_sum(tf.pow(cleaned1-labels1,2),1)
+                                   +tf.reduce_sum(tf.pow(cleaned2-labels2,2),1)
+                                   ,1) 
+            cost2 = tf.reduce_mean( tf.reduce_sum(tf.pow(cleaned2-labels1,2),1)
+                                   +tf.reduce_sum(tf.pow(cleaned1-labels2,2),1)
+                                   ,1)    
+        
+            idx = tf.cast(cost1>cost2,tf.float32)
+            loss = tf.reduce_sum(idx*cost2+(1-idx)*cost1)
+            return loss
+        def same_gender_loss(x1, x2, y):
+            loss1 = tf.reduce_sum(tf.reduce_mean(tf.reduce_sum(tf.pow(x1-y,2), 1),1))
+            loss2 = tf.reduce_sum(tf.reduce_mean(tf.reduce_sum(tf.pow(x2-y,2), 1),1))
+            idx = tf.cast(loss1>loss2, tf.float32)
+            loss = tf.cast(idx*loss2 + (1-idx)*loss1,tf.float32)
+            return loss 
+        for i in range(0, config.batch_size):
+            man1 = tf.slice(self.man1, [i,0,0], [1, -1,-1])
+            man2 = tf.slice(self.man2, [i,0,0], [1, -1,-1])
+            woman1 = tf.slice(self.woman1, [i,0,0], [1, -1,-1])
+            woman2 = tf.slice(self.woman2, [i,0,0], [1, -1,-1])
+            labels1 = tf.slice(self._labels1, [i, 0,0], [1,-1,-1])
+            labels2 = tf.slice(self._labels2, [i, 0,0], [1,-1,-1])
+            gender = tf.squeeze(tf.slice(genders,[i, 0,0], [1,-1,1]))
+            gender_num = tf.reduce_sum(tf.multiply(gender, tf.constant([2.0,1.0])))
+            def man_man() : return standard_pit(man1, man2, labels1, labels2)
+            def woman_woman(): return standard_pit(woman1, woman2, labels1, labels2)
+            def man_woman(): return same_gender_loss(man1, man2, labels1)+same_gender_loss(woman1, woman2, labels2)
+            def woman_man(): return same_gender_loss(woman1, woman2, labels1)+ same_gender_loss(man1, man2, labels2)
+
+            r = tf.case({tf.equal(gender_num, tf.constant(3.0)):man_man,
+                     tf.equal(gender_num, tf.constant(0.0)):woman_woman,
+                     tf.equal(gender_num, tf.constant(2.0)):man_woman},
+                     default= woman_man,exclusive=True)
+            loss = tf.add(loss, r)
+        self._loss = loss
+
         # Ability to save the model
         self.saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=30)
 
-        if infer: return
        
-       
+        '''
+        Standard PIT Loss function
         # Compute loss(Mse)
         cost1 = tf.reduce_mean( tf.reduce_sum(tf.pow(self._cleaned1-self._labels1,2),1)
                                +tf.reduce_sum(tf.pow(self._cleaned2-self._labels2,2),1)
@@ -152,6 +211,8 @@ class LSTM(object):
 
         idx = tf.cast(cost1>cost2,tf.float32)
         self._loss = tf.reduce_sum(idx*cost2+(1-idx)*cost1)
+        '''
+        
         if tf.get_variable_scope().reuse: return
 
         self._lr = tf.Variable(0.0, trainable=False)
