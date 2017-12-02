@@ -40,15 +40,14 @@ class LSTM(object):
         infer: bool, if training(false) or test (true)
     """
 
-    def __init__(self, config, inputs_cmvn, inputs, labels1, labels2, lengths, infer=False):
-        self._inputs = inputs_cmvn
+    def __init__(self, config,  inputs, labels, lengths, genders, infer=False):
+        self._inputs = inputs
         self._mixed = inputs
-        self._labels1 = labels1
-        self._labels2 = labels2
+        self._labels1 = tf.slice(labels, [0,0,0], [-1,-1, config.output_size])
+        self._labels2 = tf.slice(labels, [0,0,config.output_size], [-1,-1, -1])
         self._lengths = lengths
+        self._genders = genders
         self._model_type = config.model_type
-        if infer: # if infer, we prefer to run one utterance one time. 
-            config.batch_size = 1
 
         outputs = self._inputs
         ## This first layer-- feed forward layer
@@ -140,8 +139,8 @@ class LSTM(object):
             # for the same gender case. 
 
             # so , if you don't use czt feats (just the fft feats), config.czt_dim=0
-            self._cleaned1 = self._activations1*self._mixed[:,:,config.czt_dim:]
-            self._cleaned2 = self._activations2*self._mixed[:,:,config.czt_dim:]
+            self._cleaned1 = self._activations1*self._mixed
+            self._cleaned2 = self._activations2*self._mixed
         # Ability to save the model
         self.saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=30)
 
