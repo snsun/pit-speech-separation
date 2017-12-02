@@ -139,9 +139,9 @@ class LSTM(object):
             initializer=tf.constant_initializer(0.0))
             mask3 = tf.nn.sigmoid(tf.matmul(outputs, weights3) + biases3)
             mask4 = tf.nn.sigmoid(tf.matmul(outputs, weights4) + biases4)
-            self._activations1 = tf.reshape(
+            self._activations3 = tf.reshape(
                 mask3, [config.batch_size, -1, config.output_size])
-            self._activations2 = tf.reshape(
+            self._activations4 = tf.reshape(
                 mask4, [config.batch_size, -1, config.output_size])
 
             # in general, config.czt_dim == 0; However, we found that if we concatenate
@@ -151,8 +151,8 @@ class LSTM(object):
                 # so , if you don't use czt feats (just the fft feats), config.czt_dim=0
             self.man1 = self._activations1*self._mixed
             self.man2 = self._activations2*self._mixed
-            self.woman1 = self._activations1*self._mixed
-            self.woman2 = self._activations2*self._mixed
+            self.woman1 = self._activations3*self._mixed
+            self.woman2 = self._activations4*self._mixed
         if infer: 
             return
         
