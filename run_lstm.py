@@ -136,7 +136,7 @@ def train_one_epoch(sess, coord, tr_model, tr_num_batches):
         _, loss = sess.run([tr_model.train_op, tr_model.loss])
         tr_loss += loss
 
-        if (batch+1) % 1000 == 0:
+        if (batch+1) % 50 == 0:
             lr = sess.run(tr_model.lr)
             print("MINIBATCH %d: TRAIN AVG.LOSS %f, "
                   "(learning rate %e)" % (
