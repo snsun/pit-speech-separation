@@ -55,6 +55,8 @@ def get_padded_batch(file_list, batch_size, input_size, output_size,
                                   sequence['labels'],
                                   sequence['genders'],
                                   length])] * num_enqueuing_threads
+    
+    tf.train.add_queue_runner(tf.train.QueueRunner(queue, enqueue_ops))
     return queue.dequeue_many(batch_size)
 
 def get_padded_batch_v2(file_list, batch_size, input_size, output_size,

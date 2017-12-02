@@ -14,6 +14,9 @@ import time
 
 import numpy as np
 import tensorflow as tf
+sys.path.append('.')
+
+from io_funcs.signal_processing import audiowrite, stft,istft 
 
 import io_funcs.kaldi_io as kio
 from model.blstm import LSTM
@@ -40,20 +43,20 @@ def read_list_file(name, batch_size):
     return tfrecords_lst, num_batches
 def decode():
     """Decoding the inputs using current model."""
-    tfrecords_lst, num_batches = read_list_file('tt', FLAGS.batch_size)
+    tfrecords_lst, num_batches = read_list_file('tt_tf', FLAGS.batch_size)
 
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
             with tf.name_scope('input'):
                 tt_mixed,tt_labels,tt_genders,tt_lengths = get_padded_batch(
-                    tfrecords_lst, 1, FLAGS.input_size*2,
+                    tfrecords_lst, FLAGS.batch_size, FLAGS.input_size*2,
                     FLAGS.output_size*2, num_enqueuing_threads=1,
                     num_epochs=1,shuffle=False)
                 tt_inputs = tf.slice(tt_mixed, [0,0,0], [-1,-1, FLAGS.input_size])
                 tt_angles = tf.slice(tt_mixed,[0,0, FLAGS.input_size], [-1,-1, -1])            
         # Create two models with train_input and val_input individually.
         with tf.name_scope('model'):
-            model = LSTM(FLAGS, tt_inputs,tt_labels,tt_lengths,genders,infer=True)
+            model = LSTM(FLAGS, tt_inputs,tt_labels,tt_lengths,tt_genders,infer=True)
 
 
         init = tf.group(tf.global_variables_initializer(),
@@ -83,7 +86,7 @@ def decode():
     data_dir=FLAGS.data_dir
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
-
+    processed = 0
     try:
        for batch in xrange(num_batches):
            if coord.should_stop():
@@ -93,23 +96,24 @@ def decode():
            else:
                x1, x2  = model.get_opt_output()
                cleaned1, cleaned2 = sess.run([x1, x2])
-
+           spec1 = cleaned1 * np.exp(angles*1j)
+           spec2 = cleaned2 * np.exp(angles*1j)
            #sequence = activations * cmvn['stddev_labels'] + \
            #    cmvn['mean_labels']
-    
-           tffilename = tfrecords_lst[batch]
-           (_, name)=os.path.split(tffilename)
-           (uttid, _) = os.path.splitext(name)
-           (partname, _) = os.path.splitext(uttid)
-           #np.savetxt('data/mask/'+partname + '_1.mask', m1)
-           #np.savetxt('data/mask/'+partname + '_2.mask', m2)
-           kaldi_writer1 = kio.ArkWriter(data_dir +'/' + partname + '_1.wav.scp')
-           kaldi_writer2 = kio.ArkWriter(data_dir +'/' + partname  + '_2.wav.scp')
-           kaldi_writer1.write_next_utt(data_dir +'/' + partname + '_1.wav.ark', uttid, cleaned1[0,:,:])
-           kaldi_writer2.write_next_utt(data_dir +'/' + partname + '_2.wav.ark', uttid, cleaned2[0,:, :])
-           kaldi_writer1.close()
-           kaldi_writer2.close()
-           if batch % 500 == 0:
+           for i in range(0, FLAGS.batch_size): 
+                tffilename = tfrecords_lst[i+processed]
+                (_, name)=os.path.split(tffilename)
+                (uttid, _) = os.path.splitext(name)
+                (partname, _) = os.path.splitext(uttid)
+                wav_name1 = data_dir +'/' + partname + '_1.wav'
+                wav_name2 = data_dir +'/' + partname + '_2.wav'
+                wav1 = istft(spec1[i,0:lengths[i],:], size=256, shift=128)
+                wav2 = istft(spec2[i,0:lengths[i],:], size=256, shift=128)
+                audiowrite(wav1, wav_name1, 8000, True, True)
+                audiowrite(wav2, wav_name2, 8000, True, True)
+           processed = processed + FLAGS.batch_size
+
+           if batch % 50 == 0:
                print(batch )
 
     except Exception, e:
