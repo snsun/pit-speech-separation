@@ -7,7 +7,7 @@
 #      We define the tf records format for our task, please see the codes for the details
 #   3. Traing & Test model: Tensorflow
 
-step=1
+step=2
 
 lists_dir=./lists/ #lists_dir is used to store some necessary files lists
 mkdir -p $lists_dir
@@ -68,7 +68,6 @@ fi
 #   NOTE for STEP 2:                                                                              ###
 #       1. Make sure that you configure the RNN/data_dir/model_dir/ all rights                    ###
 #####################################################################################################
-exit
 if [ $step -le 2 ]; then
     
     echo "Start Decoding."

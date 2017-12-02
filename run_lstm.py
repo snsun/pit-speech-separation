@@ -92,12 +92,14 @@ def decode():
            if coord.should_stop():
                break
            if FLAGS.assign == 'def':
-               cleaned1, cleaned2,angles, lengths = sess.run([model._cleaned1, model._cleaned2,tt_angles, tt_lengths])
+               man1, man2,woman1, woman2, angles, lengths = sess.run([model.man1, model.man2,model.woman1, model.woman2,tt_angles, tt_lengths])
            else:
                x1, x2  = model.get_opt_output()
                cleaned1, cleaned2 = sess.run([x1, x2])
-           spec1 = cleaned1 * np.exp(angles*1j)
-           spec2 = cleaned2 * np.exp(angles*1j)
+           spec1 = man1 * np.exp(angles*1j)
+           spec2 = man2 * np.exp(angles*1j)
+           spec3 = woman1 * np.exp(angles*1j)
+           spec4 = woman2 * np.exp(angles*1j)
            #sequence = activations * cmvn['stddev_labels'] + \
            #    cmvn['mean_labels']
            for i in range(0, FLAGS.batch_size): 
@@ -110,6 +112,13 @@ def decode():
                 wav2 = istft(spec2[i,0:lengths[i],:], size=256, shift=128)
                 audiowrite(wav1, wav_name1, 8000, True, True)
                 audiowrite(wav2, wav_name2, 8000, True, True)
+                wav_name3 = data_dir +'/' + partname + '_3.wav'
+                wav_name4 = data_dir +'/' + partname + '_4.wav'
+                wav3 = istft(spec3[i,0:lengths[i],:], size=256, shift=128)
+                wav4 = istft(spec4[i,0:lengths[i],:], size=256, shift=128)
+                audiowrite(wav3, wav_name3, 8000, True, True)
+                audiowrite(wav4, wav_name4, 8000, True, True)
+
            processed = processed + FLAGS.batch_size
 
            if batch % 50 == 0:
@@ -136,7 +145,7 @@ def train_one_epoch(sess, coord, tr_model, tr_num_batches):
         _, loss = sess.run([tr_model.train_op, tr_model.loss])
         tr_loss += loss
 
-        if (batch+1) % 1000 == 0:
+        if (batch+1) % 50 == 0:
             lr = sess.run(tr_model.lr)
             print("MINIBATCH %d: TRAIN AVG.LOSS %f, "
                   "(learning rate %e)" % (

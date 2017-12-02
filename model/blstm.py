@@ -153,6 +153,8 @@ class LSTM(object):
             self.man2 = self._activations2*self._mixed
             self.woman1 = self._activations3*self._mixed
             self.woman2 = self._activations4*self._mixed
+        # Ability to save the model
+        self.saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=30)
         if infer: 
             return
         
@@ -169,10 +171,11 @@ class LSTM(object):
             loss = tf.reduce_sum(idx*cost2+(1-idx)*cost1)
             return loss
         def same_gender_loss(x1, x2, y):
-            loss1 = tf.reduce_sum(tf.reduce_mean(tf.reduce_sum(tf.pow(x1-y,2), 1),1))
-            loss2 = tf.reduce_sum(tf.reduce_mean(tf.reduce_sum(tf.pow(x2-y,2), 1),1))
-            idx = tf.cast(loss1>loss2, tf.float32)
-            loss = tf.cast(idx*loss2 + (1-idx)*loss1,tf.float32)
+            loss1 = tf.reduce_sum(tf.pow(x1-y,2), 1)
+            loss2 = tf.reduce_sum(tf.pow(x2-y,2), 1)
+            def f1(): return loss1
+            def f2(): return loss2
+            loss = tf.cond(tf.less(tf.reduce_sum(loss1), tf.reduce_sum(loss2)), lambda:loss1, lambda:loss2)
             return loss 
         for i in range(0, config.batch_size):
             man1 = tf.slice(self.man1, [i,0,0], [1, -1,-1])
@@ -185,8 +188,8 @@ class LSTM(object):
             gender_num = tf.reduce_sum(tf.multiply(gender, tf.constant([2.0,1.0])))
             def man_man() : return standard_pit(man1, man2, labels1, labels2)
             def woman_woman(): return standard_pit(woman1, woman2, labels1, labels2)
-            def man_woman(): return same_gender_loss(man1, man2, labels1)+same_gender_loss(woman1, woman2, labels2)
-            def woman_man(): return same_gender_loss(woman1, woman2, labels1)+ same_gender_loss(man1, man2, labels2)
+            def man_woman(): return tf.reduce_sum(tf.reduce_mean(same_gender_loss(man1, man2, labels1)+same_gender_loss(woman1, woman2, labels2), 1))
+            def woman_man(): return tf.reduce_sum(tf.reduce_mean(same_gender_loss(woman1, woman2, labels1)+ same_gender_loss(man1, man2, labels2),1))
 
             r = tf.case({tf.equal(gender_num, tf.constant(3.0)):man_man,
                      tf.equal(gender_num, tf.constant(0.0)):woman_woman,
@@ -196,7 +199,6 @@ class LSTM(object):
         self._loss = loss
 
         # Ability to save the model
-        self.saver = tf.train.Saver(tf.trainable_variables(), max_to_keep=30)
 
        
         '''
