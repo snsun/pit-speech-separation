@@ -61,7 +61,6 @@ if [ $step -le 1 ]; then
     for x in tr tt cv; do
         find $tfrecords_dir/${x}_psm/ -iname "*.tfrecords" > $lists_dir/${x}_tf.lst
     done
-<<<<<<< HEAD
     tr_cmd="python -u run_lstm.py \
     --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
     --decode=$decode --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
