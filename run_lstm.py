@@ -103,8 +103,7 @@ def decode():
            for i in range(0, FLAGS.batch_size): 
                 tffilename = tfrecords_lst[i+processed]
                 (_, name)=os.path.split(tffilename)
-                (uttid, _) = os.path.splitext(name)
-                (partname, _) = os.path.splitext(uttid)
+                (partname, _) = os.path.splitext(name)
                 wav_name1 = data_dir +'/' + partname + '_1.wav'
                 wav_name2 = data_dir +'/' + partname + '_2.wav'
                 wav1 = istft(spec1[i,0:lengths[i],:], size=256, shift=128)

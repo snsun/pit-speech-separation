@@ -48,8 +48,6 @@ class LSTM(object):
         self._lengths = lengths
         self._genders = genders
         self._model_type = config.model_type
-        if infer: # if infer, we prefer to run one utterance one time. 
-            config.batch_size = 1
 
         outputs = self._inputs
         ## This first layer-- feed forward layer
