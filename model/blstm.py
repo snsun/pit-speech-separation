@@ -149,11 +149,6 @@ class LSTM(object):
             self._activations4 = tf.reshape(
                 mask4, [config.batch_size, -1, config.output_size])
 
-            # in general, config.czt_dim == 0; However, we found that if we concatenate
-            # 128 dim chrip-z transform feats to FFT feats, we got better SDR performance
-            # for the same gender case. 
-
-                # so , if you don't use czt feats (just the fft feats), config.czt_dim=0
             self.man1 = self._activations1*self._mixed
             self.man2 = self._activations2*self._mixed
             self.woman1 = self._activations3*self._mixed
