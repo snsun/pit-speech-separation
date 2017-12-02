@@ -7,7 +7,7 @@
 #      We define the tf records format for our task, please see the codes for the details
 #   3. Traing & Test model: Tensorflow
 
-step=2
+step=1
 
 lists_dir=./lists/ #lists_dir is used to store some necessary files lists
 mkdir -p $lists_dir
