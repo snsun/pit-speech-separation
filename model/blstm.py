@@ -184,7 +184,7 @@ class LSTM(object):
             woman2 = tf.slice(self.woman2, [i,0,0], [1, -1,-1])
             labels1 = tf.slice(self._labels1, [i, 0,0], [1,-1,-1])
             labels2 = tf.slice(self._labels2, [i, 0,0], [1,-1,-1])
-            gender = tf.squeeze(tf.slice(genders,[i, 0,0], [1,-1,1]))
+            gender = tf.squeeze(tf.slice(genders,[i, 0,0], [1,-1,-1]))
             gender_num = tf.reduce_sum(tf.multiply(gender, tf.constant([2.0,1.0])))
             def man_man() : return standard_pit(man1, man2, labels1, labels2)
             def woman_woman(): return standard_pit(woman1, woman2, labels1, labels2)
