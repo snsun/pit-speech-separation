@@ -8,7 +8,7 @@
 #   3. Traing & Test model: Tensorflow
 
 
-step=2
+step=1
 
 lists_dir=./lists/ #lists_dir is used to store some necessary files lists
 mkdir -p $lists_dir
@@ -24,7 +24,7 @@ tt_batch_size=1
 input_size=129
 output_size=129
 
-rnn_size=400
+rnn_size=496
 keep_prob=0.8
 learning_rate=0.0005
 halving_factor=0.7
