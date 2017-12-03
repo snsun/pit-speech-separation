@@ -46,7 +46,7 @@ class LSTM(object):
         self._labels1 = tf.slice(labels, [0,0,0], [-1,-1, config.output_size])
         self._labels2 = tf.slice(labels, [0,0,config.output_size], [-1,-1, -1])
         self._lengths = lengths
-        self._genders = genders
+        self._genders = tf.squeeze(tf.matmul(tf.squeeze(genders),tf.constant([[2.0,],[1.0]])))
         self._model_type = config.model_type
 
         outputs = self._inputs
@@ -184,8 +184,8 @@ class LSTM(object):
             woman2 = tf.slice(self.woman2, [i,0,0], [1, -1,-1])
             labels1 = tf.slice(self._labels1, [i, 0,0], [1,-1,-1])
             labels2 = tf.slice(self._labels2, [i, 0,0], [1,-1,-1])
-            gender = tf.squeeze(tf.slice(genders,[i, 0,0], [1,-1,-1]))
-            gender_num = tf.reduce_sum(tf.multiply(gender, tf.constant([2.0,1.0])))
+         
+            gender_num=self._genders[i]
             def man_man() : return standard_pit(man1, man2, labels1, labels2)
             def woman_woman(): return standard_pit(woman1, woman2, labels1, labels2)
             def man_woman(): return tf.reduce_sum(tf.reduce_mean(same_gender_loss(man1, man2, labels1)+same_gender_loss(woman1, woman2, labels2), 1))
