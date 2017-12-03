@@ -15,7 +15,7 @@ mkdir -p $lists_dir
 num_threads=12
 
 tfrecords_dir=data/tfrecords/
-gpu_id='1'
+gpu_id='0'
 TF_CPP_MIN_LOG_LEVEL=1
 rnn_num_layers=3
 tr_batch_size=32
@@ -36,7 +36,7 @@ assignment=def
 name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}
 save_dir=exp/$name/
 data_dir=data/separated/${name}_${assignment}/
-resume_training=true
+resume_training=false
 #Step 0: extract features using matlab program. 
 #    Note: You need to change the data_dir path and kaldi_feats_dir path in 
 #          matlab_feats_extraction/extract_czt_fft_feats.m  accordng to your config;
@@ -57,7 +57,7 @@ if [ $step -le 1 ]; then
     
     echo "Start Traing RNN(LSTM or BLSTM) model."
     decode=0
-    batch_size=40
+    batch_size=25
     for x in tr tt cv; do
         find $tfrecords_dir/${x}_psm/ -iname "*.tfrecords" > $lists_dir/${x}_tf.lst
     done
