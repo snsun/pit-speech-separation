@@ -8,7 +8,7 @@
 #   3. Traing & Test model: Tensorflow
 
 
-step=1
+step=2
 
 lists_dir=./lists/ #lists_dir is used to store some necessary files lists
 mkdir -p $lists_dir

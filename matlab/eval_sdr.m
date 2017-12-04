@@ -1,7 +1,7 @@
 mixed_wav_dir = '/home/disk2/snsun/workspace/separation//data/wav/wav8k/min/tt/mix/';
 spk1_dir = '/home/disk2/snsun/workspace/separation/data/wav/wav8k/min/tt/s1/';
 spk2_dir = '/home/disk2/snsun/workspace/separation/data/wav/wav8k/min/tt//s2/';
-model_name='StandPsmPIT_BLSTM_3_400_def';
+model_name='StandPsmPIT_BLSTM_3_496_def';
 rec_wav_dir = ['../data/separated/' model_name  '/'];
 lists = dir(spk2_dir);
 len = length(lists) - 2;
