@@ -128,8 +128,8 @@ class LSTM(object):
             initializer=tf.random_normal_initializer(stddev=0.01))
             biases2 = tf.get_variable('biases2', [out_size],
             initializer=tf.constant_initializer(0.0))
-            mask1 = tf.nn.sigmoid(tf.matmul(outputs, weights1) + biases1)
-            mask2 = tf.nn.sigmoid(tf.matmul(outputs, weights2) + biases2)
+            mask1 = tf.nn.relu(tf.matmul(outputs, weights1) + biases1)
+            mask2 = tf.nn.relu(tf.matmul(outputs, weights2) + biases2)
             self._activations1 = tf.reshape(
                 mask1, [config.batch_size, -1, config.output_size])
             self._activations2 = tf.reshape(

@@ -33,7 +33,7 @@ model_type=BLSTM
 
 prefix=StandPsmPIT
 assignment=def
-name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}
+name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}_ReLU
 save_dir=exp/$name/
 data_dir=data/separated/${name}_${assignment}/
 resume_training=false
