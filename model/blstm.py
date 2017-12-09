@@ -48,7 +48,8 @@ class LSTM(object):
         self._lengths = lengths
         self._genders = genders
         self._model_type = config.model_type
-
+        self.Sigma = tf.Variable(initial_value=np.identity(config.input_size*2),trainable=False,dtype=tf.float32 )
+        
         outputs = self._inputs
         ## This first layer-- feed forward layer
         ## Transform the input to the right size before feed into RNN
@@ -156,7 +157,25 @@ class LSTM(object):
                                ,1)    
 
         idx = tf.cast(cost1>cost2,tf.float32)
-        self._loss = tf.reduce_sum(idx*cost2+(1-idx)*cost1)
+
+        #According to PIT loss, we recombine the output
+        lists = []
+        for i in range(0, config.batch_size):
+
+            x1 = tf.slice(self._cleaned1, [i,0,0], [1, -1, -1])
+            x2 = tf.slice(self._cleaned2, [i,0,0], [1, -1, -1])
+            def f1(): return tf.concat([x1, x2], axis=2)
+            def f2(): return tf.concat([x2, x1], axis=2)
+            r=tf.cond(tf.equal(idx[i],0), f1, f2)
+            lists.append(r)
+        pit_cleaned=tf.concat(lists, axis=0)
+        # Reshape the cleaned and labels to 2-d to calculate loss and Sigma
+        errors = tf.reshape(pit_cleaned - labels, [-1, config.output_size*2])
+        tmp1 = tf.matmul(errors, tf.matrix_inverse(self.Sigma))
+        loss = tf.reduce_sum(tmp1 * errors)/tf.cast( config.output_size*2, tf.float32)
+        self.Sigma = tf.matmul(tf.matrix_transpose(errors), errors)/tf.reduce_sum(tf.cast(lengths, tf.float32))
+
+        self._loss = loss
         if tf.get_variable_scope().reuse: return
 
         self._lr = tf.Variable(0.0, trainable=False)

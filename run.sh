@@ -8,7 +8,7 @@
 #   3. Traing & Test model: Tensorflow
 
 
-step=2
+step=1
 
 lists_dir=./lists/ #lists_dir is used to store some necessary files lists
 mkdir -p $lists_dir
@@ -31,7 +31,7 @@ halving_factor=0.7
 decode=0
 model_type=BLSTM
 
-prefix=StandPsmPIT
+prefix=MLPsmPIT
 assignment=def
 name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}
 save_dir=exp/$name/
