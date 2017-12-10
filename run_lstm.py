@@ -16,7 +16,7 @@ import numpy as np
 import tensorflow as tf
 sys.path.append('.')
 
-#from io_funcs.signal_processing import audiowrite, stft,istft 
+from io_funcs.signal_processing import audiowrite, stft,istft 
 
 import io_funcs.kaldi_io as kio
 from model.blstm import LSTM
@@ -44,6 +44,8 @@ def read_list_file(name, batch_size):
 def decode():
     """Decoding the inputs using current model."""
     tfrecords_lst, num_batches = read_list_file('tt_tf', FLAGS.batch_size)
+    means = np.load(FLAGS.mean_file);
+    var = np.load(FLAGS.var_file)
 
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
@@ -53,6 +55,7 @@ def decode():
                     FLAGS.output_size*2, num_enqueuing_threads=1,
                     num_epochs=1,shuffle=False)
                 tt_inputs = tf.slice(tt_mixed, [0,0,0], [-1,-1, FLAGS.input_size])
+                #tt_inputs = (tf.slice(tt_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size],dtype=tf.float32)) / tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
                 tt_angles = tf.slice(tt_mixed,[0,0, FLAGS.input_size], [-1,-1, -1])            
         # Create two models with train_input and val_input individually.
         with tf.name_scope('model'):
@@ -93,6 +96,8 @@ def decode():
                break
            if FLAGS.assign == 'def':
                cleaned1, cleaned2,angles, lengths = sess.run([model._cleaned1, model._cleaned2,tt_angles, tt_lengths])
+               #cleaned1 = cleaned1 * var + means
+               #cleaned2 = cleaned2 * var + means
            else:
                x1, x2  = model.get_opt_output()
                cleaned1, cleaned2 = sess.run([x1, x2])
@@ -134,8 +139,8 @@ def train_one_epoch(sess, coord, tr_model, tr_num_batches):
     for batch in xrange(tr_num_batches):
         if coord.should_stop():
             break
-        #_, loss, pit_loss,_ = sess.run([tr_model.train_op,tr_model.loss, tr_model._pit_loss,tr_model.op_update_sigma])
-        _, loss, pit_loss= sess.run([tr_model.train_op,tr_model.loss, tr_model._pit_loss])
+        _,_, loss, pit_loss = sess.run([tr_model.op_update_sigma,tr_model.train_op,tr_model.loss, tr_model._pit_loss])
+        #_, loss, pit_loss= sess.run([tr_model.train_op,tr_model.loss, tr_model._pit_loss])
         tr_loss += loss
         tr_pit_loss += pit_loss
 
@@ -177,13 +182,15 @@ def train():
                     val_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size*2,
                     FLAGS.output_size*2, num_enqueuing_threads=FLAGS.num_threads,
                     num_epochs=FLAGS.max_epochs + 1)
-                tr_inputs = (tf.slice(tr_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size],dtype=tf.float32)) / tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
+                #tr_inputs = (tf.slice(tr_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size],dtype=tf.float32)) / tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
+                tr_inputs = (tf.slice(tr_mixed, [0,0,0], [-1,-1, FLAGS.input_size]))
                 mean_labels = tf.constant(np.concatenate((means, means), 0), dtype=tf.float32);
                 var_labels = tf.constant(np.concatenate((var, var), 0), dtype=tf.float32)
-                tr_labels = (tr_labels - mean_labels )/var_labels
+                #tr_labels = (tr_labels - mean_labels )/var_labels
                 
-                val_inputs = (tf.slice(val_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size], dtype=tf.float32))/ tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
-                val_labels = (val_labels - mean_labels) / var_labels
+                #val_inputs = (tf.slice(val_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size], dtype=tf.float32))/ tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
+                val_inputs = (tf.slice(val_mixed, [0,0,0], [-1,-1, FLAGS.input_size]))
+                #val_labels = (val_labels - mean_labels) / var_labels
 
         with tf.name_scope('model'):
             tr_model = LSTM(FLAGS, tr_inputs, tr_labels,tr_lengths,tr_genders)
