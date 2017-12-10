@@ -40,9 +40,9 @@ class LSTM(object):
         infer: bool, if training(false) or test (true)
     """
 
-    def __init__(self, config,  inputs, labels, lengths, genders, infer=False):
+    def __init__(self, config,  inputs, mixed, labels, lengths, genders, infer=False):
         self._inputs = inputs
-        self._mixed = inputs
+        self._mixed = mixed
         self._labels1 = tf.slice(labels, [0,0,0], [-1,-1, config.output_size])
         self._labels2 = tf.slice(labels, [0,0,config.output_size], [-1,-1, -1])
         self._lengths = lengths

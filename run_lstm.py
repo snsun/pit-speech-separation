@@ -54,12 +54,12 @@ def decode():
                     tfrecords_lst, FLAGS.batch_size, FLAGS.input_size*2,
                     FLAGS.output_size*2, num_enqueuing_threads=1,
                     num_epochs=1,shuffle=False)
-                tt_inputs = tf.slice(tt_mixed, [0,0,0], [-1,-1, FLAGS.input_size])
-                #tt_inputs = (tf.slice(tt_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size],dtype=tf.float32)) / tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
+                tt_mix_inputs = tf.slice(tt_mixed, [0,0,0], [-1,-1, FLAGS.input_size])
+                tt_inputs = (tf.slice(tt_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size],dtype=tf.float32)) / tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
                 tt_angles = tf.slice(tt_mixed,[0,0, FLAGS.input_size], [-1,-1, -1])            
         # Create two models with train_input and val_input individually.
         with tf.name_scope('model'):
-            model = LSTM(FLAGS, tt_inputs,tt_labels,tt_lengths,tt_genders,infer=True)
+            model = LSTM(FLAGS, tt_inputs,tt_mix_inputs,tt_labels,tt_lengths,tt_genders,infer=True)
 
 
         init = tf.group(tf.global_variables_initializer(),
@@ -182,21 +182,21 @@ def train():
                     val_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size*2,
                     FLAGS.output_size*2, num_enqueuing_threads=FLAGS.num_threads,
                     num_epochs=FLAGS.max_epochs + 1)
-                #tr_inputs = (tf.slice(tr_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size],dtype=tf.float32)) / tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
-                tr_inputs = (tf.slice(tr_mixed, [0,0,0], [-1,-1, FLAGS.input_size]))
+                tr_mix_inputs = (tf.slice(tr_mixed, [0,0,0], [-1,-1, FLAGS.input_size]))
+                tr_inputs = (tr_mix_inputs- tf.constant(means,dtype=tf.float32)) / tf.constant(var, dtype=tf.float32)
                 mean_labels = tf.constant(np.concatenate((means, means), 0), dtype=tf.float32);
                 var_labels = tf.constant(np.concatenate((var, var), 0), dtype=tf.float32)
                 #tr_labels = (tr_labels - mean_labels )/var_labels
                 
-                #val_inputs = (tf.slice(val_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size], dtype=tf.float32))/ tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
-                val_inputs = (tf.slice(val_mixed, [0,0,0], [-1,-1, FLAGS.input_size]))
+                val_mix_inputs = (tf.slice(val_mixed, [0,0,0], [-1,-1, FLAGS.input_size]))
+                val_inputs = (val_mix_inputs - tf.constant(means, dtype=tf.float32))/ tf.constant(var, dtype=tf.float32)
                 #val_labels = (val_labels - mean_labels) / var_labels
 
         with tf.name_scope('model'):
-            tr_model = LSTM(FLAGS, tr_inputs, tr_labels,tr_lengths,tr_genders)
+            tr_model = LSTM(FLAGS, tr_inputs, tr_mix_inputs, tr_labels,tr_lengths,tr_genders)
             # tr_model and val_model should share variables
             tf.get_variable_scope().reuse_variables()
-            val_model = LSTM(FLAGS, val_inputs, val_labels,val_lengths,val_genders)
+            val_model = LSTM(FLAGS, val_inputs,val_mix_inputs, val_labels,val_lengths,val_genders)
         show_all_variables()
         init = tf.group(tf.global_variables_initializer(),
                         tf.local_variables_initializer())
