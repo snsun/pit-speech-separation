@@ -134,7 +134,8 @@ def train_one_epoch(sess, coord, tr_model, tr_num_batches):
     for batch in xrange(tr_num_batches):
         if coord.should_stop():
             break
-        _, _,loss, pit_loss = sess.run([tr_model.train_op, tr_model.op_update_sigma,tr_model.loss, tr_model._pit_loss])
+        #_, loss, pit_loss,_ = sess.run([tr_model.train_op,tr_model.loss, tr_model._pit_loss,tr_model.op_update_sigma])
+        _, loss, pit_loss= sess.run([tr_model.train_op,tr_model.loss, tr_model._pit_loss])
         tr_loss += loss
         tr_pit_loss += pit_loss
 
@@ -142,7 +143,7 @@ def train_one_epoch(sess, coord, tr_model, tr_num_batches):
             lr = sess.run(tr_model.lr)
             print("MINIBATCH %d: TRAIN AVG.LOSS %f, PIT AVG.LOSS %f "
                   "(learning rate %e)" % (
-                        batch + 1, tr_loss / (batch + 1), tr_pit_loss/(batch+1), lr))
+                        batch + 1, tr_loss / (batch + 1)/FLAGS.batch_size, tr_pit_loss/(batch+1)/FLAGS.batch_size, lr))
             sys.stdout.flush()
     tr_loss /= tr_num_batches
     tr_pit_loss /= tr_num_batches
@@ -154,7 +155,7 @@ def eval_one_epoch(sess, coord, val_model, val_num_batches):
     for batch in xrange(val_num_batches):
         if coord.should_stop():
             break
-        loss = sess.run(val_model._pit_loss)
+        loss ,sigma= sess.run([val_model._pit_loss,val_model.Sigma])
         val_loss += loss
     val_loss /= val_num_batches
     
@@ -162,7 +163,8 @@ def eval_one_epoch(sess, coord, val_model, val_num_batches):
 def train():
     tr_tfrecords_lst, tr_num_batches = read_list_file("tr_tf", FLAGS.batch_size)
     val_tfrecords_lst, val_num_batches = read_list_file("cv_tf", FLAGS.batch_size)
-  
+    means = np.load(FLAGS.mean_file);
+    var = np.load(FLAGS.var_file)
     with tf.Graph().as_default():
         with tf.device('/cpu:0'):
             with tf.name_scope('input'):
@@ -175,9 +177,13 @@ def train():
                     val_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size*2,
                     FLAGS.output_size*2, num_enqueuing_threads=FLAGS.num_threads,
                     num_epochs=FLAGS.max_epochs + 1)
-                tr_inputs = tf.slice(tr_mixed, [0,0,0], [-1,-1, FLAGS.input_size])
-                val_inputs = tf.slice(val_mixed, [0,0,0], [-1,-1, FLAGS.input_size])
-     
+                tr_inputs = (tf.slice(tr_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size],dtype=tf.float32)) / tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
+                mean_labels = tf.constant(np.concatenate((means, means), 0), dtype=tf.float32);
+                var_labels = tf.constant(np.concatenate((var, var), 0), dtype=tf.float32)
+                tr_labels = (tr_labels - mean_labels )/var_labels
+                
+                val_inputs = (tf.slice(val_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size], dtype=tf.float32))/ tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
+                val_labels = (val_labels - mean_labels) / var_labels
 
         with tf.name_scope('model'):
             tr_model = LSTM(FLAGS, tr_inputs, tr_labels,tr_lengths,tr_genders)
@@ -208,6 +214,7 @@ def train():
         try:
             # Cross validation before training.
             loss_prev = eval_one_epoch(sess, coord, val_model, val_num_batches)
+            #loss_prev = 1000
             tf.logging.info("CROSSVAL PRERUN AVG.LOSS %.4F" % loss_prev)
 
             sess.run(tf.assign(tr_model.lr, FLAGS.learning_rate))
@@ -327,12 +334,7 @@ if __name__ == "__main__":
         default=129,
         help="The dimension of output."
     )
-    parser.add_argument(
-        '--czt_dim',
-        type=int,
-        default=0,
-        help="chrip-z transform feats dimension. it should be 0 if you just use fft spectrum feats"
-    )
+    
  
     parser.add_argument(
         '--rnn_size',
@@ -422,6 +424,16 @@ if __name__ == "__main__":
         '--model_type',
         type=str, default='LSTM',
         help="BLSTM or LSTM"
+    )
+    parser.add_argument(
+        '--mean_file',
+        type=str, default='data/tfrecords/mean.npy',
+        help="mean file for mean-variance normalization"
+    )
+    parser.add_argument(
+        '--var_file',
+        type=str, default='data/tfrecords/var.npy',
+        help="var file for mean-variance normalization"
     )
     FLAGS, unparsed = parser.parse_known_args()
     pp.pprint(FLAGS.__dict__)
