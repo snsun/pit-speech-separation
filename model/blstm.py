@@ -173,9 +173,9 @@ class LSTM(object):
         errors = tf.reshape(pit_cleaned - labels, [-1, config.output_size*2])
         tmp1 = tf.matmul(errors, tf.matrix_inverse(self.Sigma))
         loss = tf.reduce_sum(tmp1 * errors)/tf.cast( config.output_size*2, tf.float32)
+        self._loss = loss
         self.op_update_sigma=tf.assign(self.Sigma, tf.matmul(tf.matrix_transpose(errors), errors)/tf.reduce_sum(tf.cast(lengths, tf.float32)))
 
-        self._loss = loss
         if tf.get_variable_scope().reuse: return
 
         self._lr = tf.Variable(0.0, trainable=False)
