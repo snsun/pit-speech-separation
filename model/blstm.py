@@ -157,7 +157,7 @@ class LSTM(object):
                                ,1)    
 
         idx = tf.cast(cost1>cost2,tf.float32)
-	self._pit_loss = tf.reduce_sum(idx*cost2 + (1-idx)*cost1)
+        self._pit_loss = tf.reduce_sum(idx*cost2 + (1-idx)*cost1)
         #According to PIT loss, we recombine the output
         lists = []
         for i in range(0, config.batch_size):
