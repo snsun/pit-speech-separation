@@ -16,7 +16,7 @@ import numpy as np
 import tensorflow as tf
 sys.path.append('.')
 
-from io_funcs.signal_processing import audiowrite, stft,istft 
+#from io_funcs.signal_processing import audiowrite, stft,istft 
 
 import io_funcs.kaldi_io as kio
 from model.blstm import LSTM
@@ -139,12 +139,12 @@ def train_one_epoch(sess, coord, tr_model, tr_num_batches):
     for batch in xrange(tr_num_batches):
         if coord.should_stop():
             break
-        _,_, loss, pit_loss = sess.run([tr_model.op_update_sigma,tr_model.train_op,tr_model.loss, tr_model._pit_loss])
+        _, loss, pit_loss = sess.run([tr_model.train_op,tr_model.loss, tr_model._pit_loss])
         #_, loss, pit_loss= sess.run([tr_model.train_op,tr_model.loss, tr_model._pit_loss])
         tr_loss += loss
         tr_pit_loss += pit_loss
 
-        if (batch+1) % 50 == 0:
+        if (batch+1) % 10 == 0:
             lr = sess.run(tr_model.lr)
             print("MINIBATCH %d: TRAIN AVG.LOSS %f, PIT AVG.LOSS %f "
                   "(learning rate %e)" % (
@@ -182,15 +182,15 @@ def train():
                     val_tfrecords_lst, FLAGS.batch_size, FLAGS.input_size*2,
                     FLAGS.output_size*2, num_enqueuing_threads=FLAGS.num_threads,
                     num_epochs=FLAGS.max_epochs + 1)
-                tr_inputs = (tf.slice(tr_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size],dtype=tf.float32)) / tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
-                #tr_inputs = (tf.slice(tr_mixed, [0,0,0], [-1,-1, FLAGS.input_size]))
+                #tr_inputs = (tf.slice(tr_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size],dtype=tf.float32)) / tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
+                tr_inputs = (tf.slice(tr_mixed, [0,0,0], [-1,-1, FLAGS.input_size]))
                 mean_labels = tf.constant(np.concatenate((means, means), 0), dtype=tf.float32);
                 var_labels = tf.constant(np.concatenate((var, var), 0), dtype=tf.float32)
-                tr_labels = (tr_labels - mean_labels )/var_labels
+                #tr_labels = (tr_labels - mean_labels )/var_labels
                 
-                val_inputs = (tf.slice(val_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size], dtype=tf.float32))/ tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
-                #val_inputs = (tf.slice(val_mixed, [0,0,0], [-1,-1, FLAGS.input_size]))
-                val_labels = (val_labels - mean_labels) / var_labels
+                #val_inputs = (tf.slice(val_mixed, [0,0,0], [-1,-1, FLAGS.input_size]) - tf.constant(means[0:FLAGS.input_size], dtype=tf.float32))/ tf.constant(var[0:FLAGS.input_size], dtype=tf.float32)
+                val_inputs = (tf.slice(val_mixed, [0,0,0], [-1,-1, FLAGS.input_size]))
+                #val_labels = (val_labels - mean_labels) / var_labels
 
         with tf.name_scope('model'):
             tr_model = LSTM(FLAGS, tr_inputs, tr_labels,tr_lengths,tr_genders)
@@ -220,8 +220,8 @@ def train():
         threads = tf.train.start_queue_runners(sess=sess,coord=coord)	
         try:
             # Cross validation before training.
-            loss_prev = eval_one_epoch(sess, coord, val_model, val_num_batches)
-            #loss_prev = 1000
+            #loss_prev = eval_one_epoch(sess, coord, val_model, val_num_batches)
+            loss_prev = 1000
             tf.logging.info("CROSSVAL PRERUN AVG.LOSS %.4F" % loss_prev)
 
             sess.run(tf.assign(tr_model.lr, FLAGS.learning_rate))
