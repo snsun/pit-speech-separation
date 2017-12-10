@@ -172,14 +172,13 @@ class LSTM(object):
         cleaned = tf.concat([self._cleaned1, self._cleaned2], axis=2)
         # Reshape the cleaned and labels to 2-d to calculate loss and Sigma
         errors = tf.reshape(pit_labels-cleaned, [-1, config.output_size*2])
+     	#self.Sigma= tf.matmul(tf.matrix_transpose(errors), errors)/tf.reduce_sum(tf.cast(lengths, tf.float32)) *tf.constant(np.identity(config.output_size*2), dtype=tf.float32)
         tmp1 = tf.matmul(errors, tf.matrix_inverse(self.Sigma))
         loss = tf.reduce_sum(tmp1 * errors)/tf.cast( config.output_size, tf.float32)
-        tmp=tf.matmul(tf.matrix_transpose(errors), errors)/tf.reduce_sum(tf.cast(lengths, tf.float32)) *tf.constant(np.identity(config.output_size*2), dtype=tf.float32)
-        #tmp = tmp /tf.reduce_sum(tmp)
-        self.op_update_sigma=tf.assign(self.Sigma,tmp )
+        self._loss = loss
+        #self.op_update_sigma=tf.assign(self.Sigma, tf.matmul(tf.matrix_transpose(errors), errors)/tf.reduce_sum(tf.cast(lengths, tf.float32)) *tf.constant(np.identity(config.output_size*2), dtype=tf.float32))
 
         #self.Sigma = tf.Variable(initial_value=np.identity(config.input_size*2),trainable=False,dtype=tf.float32 )
-        self._loss = loss
         if tf.get_variable_scope().reuse: return
 
         self._lr = tf.Variable(0.0, trainable=False)

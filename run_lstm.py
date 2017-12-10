@@ -16,7 +16,7 @@ import numpy as np
 import tensorflow as tf
 sys.path.append('.')
 
-from io_funcs.signal_processing import audiowrite, stft,istft 
+#from io_funcs.signal_processing import audiowrite, stft,istft 
 
 import io_funcs.kaldi_io as kio
 from model.blstm import LSTM
@@ -139,7 +139,7 @@ def train_one_epoch(sess, coord, tr_model, tr_num_batches):
     for batch in xrange(tr_num_batches):
         if coord.should_stop():
             break
-        _,_, loss, pit_loss = sess.run([tr_model.op_update_sigma,tr_model.train_op,tr_model.loss, tr_model._pit_loss])
+        _, loss, pit_loss = sess.run([tr_model.train_op,tr_model.loss, tr_model._pit_loss])
         #_, loss, pit_loss= sess.run([tr_model.train_op,tr_model.loss, tr_model._pit_loss])
         tr_loss += loss
         tr_pit_loss += pit_loss
