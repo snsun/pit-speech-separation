@@ -16,7 +16,7 @@ import numpy as np
 import tensorflow as tf
 sys.path.append('.')
 
-from io_funcs.signal_processing import audiowrite, stft,istft 
+#from io_funcs.signal_processing import audiowrite, stft,istft 
 
 import io_funcs.kaldi_io as kio
 from model.blstm import LSTM
@@ -130,21 +130,23 @@ def decode():
 def train_one_epoch(sess, coord, tr_model, tr_num_batches):
     """Runs the model one epoch on given data."""
     tr_loss = 0
+    tr_pit_loss = 0
     for batch in xrange(tr_num_batches):
         if coord.should_stop():
             break
-        _, loss = sess.run([tr_model.train_op, tr_model.loss])
+        _, _,loss, pit_loss = sess.run([tr_model.train_op, tr_model.op_update_sigma,tr_model.loss, tr_model._pit_loss])
         tr_loss += loss
+        tr_pit_loss += pit_loss
 
         if (batch+1) % 50 == 0:
             lr = sess.run(tr_model.lr)
-            print("MINIBATCH %d: TRAIN AVG.LOSS %f, "
+            print("MINIBATCH %d: TRAIN AVG.LOSS %f, PIT AVG.LOSS %f "
                   "(learning rate %e)" % (
-                        batch + 1, tr_loss / (batch + 1), lr))
+                        batch + 1, tr_loss / (batch + 1), tr_pit_loss/(batch+1), lr))
             sys.stdout.flush()
     tr_loss /= tr_num_batches
-
-    return tr_loss
+    tr_pit_loss /= tr_num_batches
+    return tr_pit_loss / FLAGS.batch_size
 
 def eval_one_epoch(sess, coord, val_model, val_num_batches):
     """Cross validate the model on given data."""
@@ -152,11 +154,11 @@ def eval_one_epoch(sess, coord, val_model, val_num_batches):
     for batch in xrange(val_num_batches):
         if coord.should_stop():
             break
-        loss = sess.run(val_model._loss)
+        loss = sess.run(val_model._pit_loss)
         val_loss += loss
     val_loss /= val_num_batches
     
-    return val_loss
+    return val_loss / FLAGS.batch_size
 def train():
     tr_tfrecords_lst, tr_num_batches = read_list_file("tr_tf", FLAGS.batch_size)
     val_tfrecords_lst, val_num_batches = read_list_file("cv_tf", FLAGS.batch_size)

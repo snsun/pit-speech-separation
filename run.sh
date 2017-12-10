@@ -15,7 +15,7 @@ mkdir -p $lists_dir
 num_threads=12
 
 tfrecords_dir=data/tfrecords/
-gpu_id='1'
+gpu_id='6'
 TF_CPP_MIN_LOG_LEVEL=1
 rnn_num_layers=3
 tr_batch_size=32
