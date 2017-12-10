@@ -152,7 +152,7 @@ def eval_one_epoch(sess, coord, val_model, val_num_batches):
     for batch in xrange(val_num_batches):
         if coord.should_stop():
             break
-        loss = sess.run(val_model._loss)
+        loss , sigma= sess.run([val_model._loss, val_model.Sigma])
         val_loss += loss
     val_loss /= val_num_batches
     
