@@ -26,12 +26,12 @@ output_size=129
 
 rnn_size=496
 keep_prob=0.8
-learning_rate=0.0005
+learning_rate=0.0001
 halving_factor=0.7
 decode=0
 model_type=BLSTM
 
-prefix=MLPsmPIT
+prefix=MLStandPsmPIT
 assignment=def
 name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}
 save_dir=exp/$name/
