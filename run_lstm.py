@@ -160,7 +160,7 @@ def eval_one_epoch(sess, coord, val_model, val_num_batches):
     for batch in xrange(val_num_batches):
         if coord.should_stop():
             break
-        loss ,sigma= sess.run([val_model._pit_loss,val_model.Sigma])
+        _,loss ,sigma= sess.run([val_model.op_update_sigma,val_model._pit_loss,val_model.Sigma])
         val_loss += loss
     val_loss /= val_num_batches
     

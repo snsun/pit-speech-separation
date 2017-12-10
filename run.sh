@@ -8,7 +8,7 @@
 #   3. Traing & Test model: Tensorflow
 
 
-step=1
+step=2
 
 lists_dir=./lists/ #lists_dir is used to store some necessary files lists
 mkdir -p $lists_dir
@@ -26,12 +26,12 @@ output_size=129
 
 rnn_size=496
 keep_prob=0.8
-learning_rate=0.0001
+learning_rate=0.0005
 halving_factor=0.7
 decode=0
 model_type=BLSTM
 
-prefix=MLStandPsmPIT
+prefix=ComStandPsmPIT
 assignment=def
 name=${prefix}_${model_type}_${rnn_num_layers}_${rnn_size}
 save_dir=exp/$name/
@@ -62,7 +62,7 @@ if [ $step -le 1 ]; then
         find $tfrecords_dir/${x}_psm/ -iname "*.tfrecords" > $lists_dir/${x}_tf.lst
     done
 
-    tr_cmd="python -u  run_lstm.py \
+    tr_cmd="python -u run_lstm.py \
     --lists_dir=$lists_dir  --rnn_num_layers=$rnn_num_layers --batch_size=$batch_size --rnn_size=$rnn_size \
     --decode=$decode --learning_rate=$learning_rate --save_dir=$save_dir --data_dir=$data_dir --keep_prob=$keep_prob \
     --input_size=$input_size --output_size=$output_size  --assign=$assignment --resume_training=$resume_training \
