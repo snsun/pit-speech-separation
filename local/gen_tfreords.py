@@ -107,14 +107,14 @@ def gen_feats(wav_name):
         
        
 
-#pool = multiprocessing.Pool(8)
+pool = multiprocessing.Pool(8)
 workers= []
 fid = open(namelist, 'r')
 lines = fid.readlines()
 fid.close()
 for name in lines:
     name = name.strip('\n')
-#    workers.append(pool.apply_async(gen_feats, (name)))
+    workers.append(pool.apply_async(gen_feats, (name)))
     gen_feats(name)
-#pool.close()
-#pool.join()
+pool.close()
+pool.join()
