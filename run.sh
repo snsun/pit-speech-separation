@@ -5,7 +5,7 @@
 
 
 
-step=1
+step=0
 
 lists_dir=./lists/ #lists_dir is used to store some necessary files lists
 mkdir -p $lists_dir
