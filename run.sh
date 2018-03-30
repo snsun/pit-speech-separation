@@ -1,11 +1,8 @@
 #! /bin/bash
 
 # This recipe is used to do NN-PIT (LSTM, DNN or  BLSTM)
-# I am sorry that we use different tools to do different work in this recipe
-#   1. Feature extraction: Matlab-> czt & fft features -> Kaldi ark(text)
-#   2. Feature format transformation: Kaldi ark(txt) -> Kaldi ark(binary), scp -> Tensorflow records
-#      We define the tf records format for our task, please see the codes for the details
-#   3. Traing & Test model: Tensorflow
+
+
 
 
 step=1
@@ -38,6 +35,12 @@ save_dir=exp/$name/
 data_dir=data/separated/${name}_${assignment}/
 resume_training=false
 
+# note: we want to use gender information, but we didn't use in this version. 
+# but when we prepared our data, we stored the gender information (maybe useful in the future).
+# wsj-train-spkrinfo.txt:  https://catalog.ldc.upenn.edu/docs/LDC93S6A/wsj0-train-spkrinfo.txt
+
+# tfrecords are stored in data/tfrecords/{tr, cv, tt}_psm/
+
 if [ $step -le 0 ]; then
     for x in tr cv tt; do
         python -u local/gen_tfreords.py --gender_list local/wsj0-train-spkrinfo.txt data/wav/wav8k/min/$x/ lists/${x}_wav.lst data/tfrecords/${x}_psm/ &
@@ -55,6 +58,9 @@ if [ $step -le 1 ]; then
     echo "Start Traing RNN(LSTM or BLSTM) model."
     decode=0
     batch_size=25
+    # Here, we made tfrecords list file for tr, cv and tt data. 
+    # Make sure you have generated tfrecords files in $tfrecords_dir/{tr, cv, tt}_psm/
+    # The list files name must be tr_tf.lst, cv_tf.lst and tt_tf.lst. We fixed them in run_lstm.py
     for x in tr tt cv; do
         find $tfrecords_dir/${x}_psm/ -iname "*.tfrecords" > $lists_dir/${x}_tf.lst
     done
