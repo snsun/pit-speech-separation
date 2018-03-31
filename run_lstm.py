@@ -95,7 +95,7 @@ def decode():
                cleaned1, cleaned2,angles, lengths = sess.run([model._cleaned1, model._cleaned2,tt_angles, tt_lengths])
            else:
                x1, x2  = model.get_opt_output()
-               cleaned1, cleaned2 = sess.run([x1, x2])
+               cleaned1, cleaned2, angles, lengths = sess.run([x1, x2, tt_angles, tt_lenghts])
            spec1 = cleaned1 * np.exp(angles*1j)
            spec2 = cleaned2 * np.exp(angles*1j)
            #sequence = activations * cmvn['stddev_labels'] + \
