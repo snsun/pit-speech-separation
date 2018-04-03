@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2017   Sining Sun 
+# Copyright 2017   Sining Sun (Northwestern Polytechnical University, China)
 
 from __future__ import absolute_import
 from __future__ import division
