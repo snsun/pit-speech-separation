@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2017    Ke Wang     Xiaomi
+# Copyright 2017    
+# Ke Wang  
+# Sining Sun
+# Yuchao Zhang 
 
 """IO classes for reading and writing kaldi .ark
 
