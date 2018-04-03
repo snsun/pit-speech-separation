@@ -1,5 +1,5 @@
 #! /bin/bash
-
+# Author: Sining Sun (Northwestern Polytechnical University, China)
 # This recipe is used to do NN-PIT (LSTM, DNN or  BLSTM)
 
 
