@@ -64,15 +64,22 @@ class LSTM(object):
         ## Configure the LSTM or BLSTM model 
         ## For BLSTM, we use the BasicLSTMCell.For LSTM, we use LSTMCell. 
         ## You can change them and test the performance...
-
+        def lstm_cell():
+            return tf.contrib.rnn.LSTMCell(
+                config.rnn_size, forget_bias=1.0, use_peepholes=True,
+                initializer=tf.contrib.layers.xavier_initializer(),
+                state_is_tuple=True, activation=tf.tanh)
+        attn_cell = lstm_cell
+        if not infer and config.keep_prob < 1.0:
+            def attn_cell():
+                return tf.contrib.rnn.DropoutWrapper(lstm_cell(), output_keep_prob=config.keep_prob)
+ 
         if config.model_type.lower() == 'blstm': 
             with tf.variable_scope('blstm'):
-                cell = tf.contrib.rnn.BasicLSTMCell(config.rnn_size)
-                if not infer and config.keep_prob < 1.0:
-                    cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=config.keep_prob)
 
-                lstm_fw_cell = tf.contrib.rnn.MultiRNNCell([cell] * config.rnn_num_layers)
-                lstm_bw_cell = tf.contrib.rnn.MultiRNNCell([cell] * config.rnn_num_layers)
+                lstm_fw_cell = tf.contrib.rnn.MultiRNNCell([attn_cell() for _ in range(config.rnn_num_layers)],state_is_tuple=True)
+                lstm_bw_cell = tf.contrib.rnn.MultiRNNCell([attn_cell() for _ in range(config.rnn_num_layers)],state_is_tuple=True)
+
                 lstm_fw_cell = _unpack_cell(lstm_fw_cell)
                 lstm_bw_cell = _unpack_cell(lstm_bw_cell)
                 result = rnn.stack_bidirectional_dynamic_rnn(
@@ -84,15 +91,6 @@ class LSTM(object):
                 outputs, fw_final_states, bw_final_states = result
         if config.model_type.lower() == 'lstm':
             with tf.variable_scope('lstm'):
-                def lstm_cell():
-                    return tf.contrib.rnn.LSTMCell(
-                        config.rnn_size, forget_bias=1.0, use_peepholes=True,
-                        initializer=tf.contrib.layers.xavier_initializer(),
-                        state_is_tuple=True, activation=tf.tanh)
-                attn_cell = lstm_cell
-                if not infer and config.keep_prob < 1.0:
-                    def attn_cell():
-                        return tf.contrib.rnn.DropoutWrapper(lstm_cell(), output_keep_prob=config.keep_prob)
                 cell = tf.contrib.rnn.MultiRNNCell(
                     [attn_cell() for _ in range(config.rnn_num_layers)],
                     state_is_tuple=True)
