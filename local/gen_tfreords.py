@@ -9,9 +9,9 @@ import tensorflow as tf
 import numpy as np
 parser = argparse.ArgumentParser(description='Generate TFRecords files')
 parser.add_argument('wavdir',
-                    help='The parent dit of mix/s1/s2')
+                    help='The parent dir of mix/s1/s2')
 parser.add_argument('namelist',
-                    help='The parent dit of mix/s1/s2')
+                    help='The parent dir of mix/s1/s2')
                    
 parser.add_argument('tfdir',
                     help='TFRecords files dir')
