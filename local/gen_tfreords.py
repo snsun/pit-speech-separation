@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(description='Generate TFRecords files')
 parser.add_argument('wavdir',
                     help='The parent dir of mix/s1/s2')
 parser.add_argument('namelist',
-                    help='The parent dir of mix/s1/s2')
+                    help='wav files list, per wav name per line')
                    
 parser.add_argument('tfdir',
                     help='TFRecords files dir')
